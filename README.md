@@ -6,46 +6,69 @@
 
 ## 1. Introducción y Metas
 
-### 1.1 Vista de Requerimientos
+## 1.1 Vista de Requerimientos
 
-El sistema **AS_StudentProgressSystem** tiene como objetivo permitir la gestión y visualización del progreso académico de estudiantes.
+El sistema **AS_StudentProgressSystem** tiene como propósito permitir a los estudiantes **visualizar y gestionar su progreso académico a lo largo de su carrera universitaria**.
 
-#### Requerimientos funcionales iniciales
+El sistema representará la **malla curricular por semestres**, permitiendo marcar visualmente las asignaturas que el estudiante ya ha cursado y aprobado. Esto facilita que el estudiante comprenda su avance académico y planifique los semestres futuros.
 
-- RF1: Exponer una API REST para gestión de estudiantes.
-- RF2: Permitir comunicación entre frontend y backend.
-- RF3: Preparar la estructura para autenticación futura.
-- RF4: Contenerizar el sistema con Docker.
+El sistema está diseñado para ser **multicarrera**, es decir, podrá manejar diferentes programas académicos (Ingeniería, Administración, Medicina, etc.), cada uno con su propia estructura curricular.
 
-#### Requerimientos no funcionales
+### Requerimientos funcionales
 
-- RNF1: Arquitectura modular y escalable.
-- RNF2: Separación clara entre frontend y backend.
-- RNF3: Despliegue reproducible mediante contenedores.
+- **RF1:** Mostrar la malla curricular completa de una carrera organizada por semestres.
+- **RF2:** Permitir al estudiante visualizar las materias que ya ha cursado.
+- **RF3:** Permitir marcar materias como completadas.
+- **RF4:** Mostrar visualmente el progreso académico del estudiante (materias aprobadas vs pendientes).
+- **RF5:** Permitir manejar múltiples carreras con diferentes mallas curriculares.
+- **RF6:** Exponer una API REST para gestionar estudiantes, carreras y materias.
+- **RF7:** Permitir la comunicación entre frontend y backend mediante HTTP.
+- **RF8:** Preparar la arquitectura para integración futura con sistemas académicos institucionales.
+### Requerimientos no funcionales
+
+- **RNF1:** Arquitectura modular que facilite futuras extensiones.
+- **RNF2:** Separación clara entre frontend y backend.
+- **RNF3:** Despliegue reproducible mediante contenedores Docker.
+- **RNF4:** Interfaz intuitiva para facilitar la visualización del progreso académico.
+- **RNF5:** Capacidad de escalar para soportar múltiples carreras y estudiantes.
+
+
+# 1.2 Metas de Calidad
+
+Las principales metas de calidad del sistema son:
+
+### Modularidad
+
+Permitir que los diferentes componentes del sistema puedan evolucionar de forma independiente.
+
+### Escalabilidad
+
+La arquitectura debe permitir soportar un crecimiento en el número de estudiantes y carreras registradas.
+
+### Mantenibilidad
+
+El sistema debe ser fácil de mantener y modificar por futuros equipos de desarrollo.
+
+### Portabilidad
+
+El sistema debe poder desplegarse en distintos entornos gracias al uso de contenedores Docker.
+
+### Usabilidad
+
+El sistema debe presentar la información académica de forma clara y comprensible para los estudiantes.
 
 ---
-
-### 1.2 Metas de Calidad
-
-En esta fase inicial las metas principales son:
-
-- Modularidad  
-- Escalabilidad  
-- Mantenibilidad  
-- Portabilidad  
-
 ---
 
-### 1.3 Stakeholders
+# 1.3 Stakeholders
 
-| Rol | Expectativa |
-|------|------------|
-| Estudiante | Visualizar su progreso académico |
-| Docente | Consultar información de estudiantes |
-| Equipo de Desarrollo | Construir una arquitectura limpia y escalable |
-| Profesor del curso | Evaluar aplicación correcta de principios arquitectónicos |
+| Stakeholder | Descripción | Expectativas |
+|--------------|-------------|--------------|
+| Estudiantes | Usuarios principales del sistema | Visualizar su avance académico y planificar sus materias |
+| Docentes | Pueden consultar progreso de estudiantes | Acceso a información académica organizada |
+| Equipo de Desarrollo | Responsables del desarrollo y mantenimiento | Arquitectura clara y extensible |
+| Profesor del curso | Evaluador del proyecto | Correcta aplicación de arquitectura de software |
 
----
 
 ## 2. Restricciones de la Arquitectura
 
@@ -59,14 +82,22 @@ En esta fase inicial las metas principales son:
 
 ## 3. Alcance y Contexto del Sistema
 
-### 3.1 Contexto de Negocio
+Dentro del entorno universitario, los estudiantes suelen consultar su progreso académico mediante sistemas institucionales complejos o poco visuales.
 
-El sistema permitirá gestionar y consultar información académica dentro de un entorno universitario.
+El sistema **AS_StudentProgressSystem** propone una herramienta visual que permita:
 
-Flujo general:
-Usuario → Frontend → Backend API → (Base de datos futura)
+- Consultar la malla curricular.
+- Identificar las materias ya aprobadas.
+- Visualizar las materias pendientes.
+- Comprender el avance académico por semestre.
 
-En esta fase aún no se implementa base de datos.
+
+### Flujo de interacción
+
+1. El estudiante accede al sistema mediante el navegador.
+2. El sistema muestra la malla curricular correspondiente a su carrera.
+3. El estudiante puede visualizar las materias aprobadas.
+4. El sistema muestra gráficamente el progreso académico.
 
 ---
 
