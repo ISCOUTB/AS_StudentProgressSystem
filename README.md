@@ -265,6 +265,6 @@ Prioridad actual:
 | Banner | Sistema de gestión académica utilizado por la Universidad Tecnológica de Bolívar para administrar procesos relacionados con estudiantes, matrículas, cursos y registros académicos. |
 | Dashboard | Interfaz visual que muestra información relevante mediante gráficos, indicadores y métricas, facilitando la comprensión rápida del estado o progreso de un sistema. |
 
-## prototipo
+## Planteacion inicial.
 ![8d79857c-2607-494b-af99-07a0e5f02ad3](https://github.com/user-attachments/assets/70954a0f-d9b6-4d25-a197-bb4726ede099)
 
