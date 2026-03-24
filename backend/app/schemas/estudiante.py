@@ -1,7 +1,27 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, EmailStr
+from uuid import UUID
+from app.enums.status_estudiante import StatusEstudiante
 
-class Student(BaseModel):
-    id: int
-    name: str
-    average: float
-#esto define como se va a ver un estudiante, con su id, nombre y promedio. Esto es lo que se va a usar para mostrar la informacion del estudiante en la aplicacion.    
+class EstudianteCreate(BaseModel):
+    nombre: str
+    apellido: str
+    codigo: str
+    correo: EmailStr
+    password: str
+    status: StatusEstudiante = StatusEstudiante.activo
+
+class EstudianteRead(BaseModel):
+    id_estudiante: UUID
+    nombre: str
+    apellido: str
+    codigo: str
+    correo: EmailStr
+    status: StatusEstudiante
+
+    model_config = {"from_attributes": True}
+
+class EstudianteUpdate(BaseModel):
+    nombre: str | None = None
+    apellido: str | None = None
+    correo: EmailStr | None = None
+    status: StatusEstudiante | None = None

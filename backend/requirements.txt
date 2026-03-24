@@ -1,6 +1,9 @@
 fastapi
-uvicorn
-sqlalchemy
+uvicorn[standard]
+sqlmodel
+psycopg2-binary
+pydantic-settings
+pydantic[email]
 pytest
 pytest-cov
 httpx

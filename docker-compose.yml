@@ -1,0 +1,44 @@
+services:
+  db:
+    image: postgres:15
+    container_name: sps_db
+    environment:
+      POSTGRES_USER: sps_user
+      POSTGRES_PASSWORD: sps_password
+      POSTGRES_DB: sps_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - sps_network
+
+  backend:
+    build: ./backend
+    container_name: sps_backend
+    environment:
+      DATABASE_URL: postgresql://sps_user:sps_password@db:5432/sps_db
+    ports:
+      - "8000:8000"
+    depends_on:
+      - db
+    networks:
+      - sps_network
+    volumes:
+      - ./backend:/app
+
+  frontend:
+    build: ./frontend
+    container_name: sps_frontend
+    ports:
+      - "3000:3000"
+    depends_on:
+      - backend
+    networks:
+      - sps_network
+
+volumes:
+  postgres_data:
+
+networks:
+  sps_network:
