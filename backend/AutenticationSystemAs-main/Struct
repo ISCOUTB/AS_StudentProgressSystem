@@ -1,0 +1,13 @@
+backend/
+│
+├── main.py
+├── models/
+│   └── user.py
+├── schemas/
+│   └── auth_schema.py
+├── services/
+│   └── auth_service.py
+├── routes/
+│   └── auth_routes.py
+└── utils/
+    └── security.py
