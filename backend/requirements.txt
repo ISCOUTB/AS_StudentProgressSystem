@@ -4,3 +4,7 @@ sqlalchemy
 pytest
 pytest-cov
 httpx
+sqlmodel
+psycopg2-binary
+pydantic[email]
+python-dotenv
