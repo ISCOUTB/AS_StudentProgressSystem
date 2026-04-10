@@ -1,5 +1,5 @@
 from fastapi import FastAPI
-from app.db.database import create_db_and_tables
+from backend.app.db.db import create_db_and_tables
 from app.routes import estudiante
 
 app = FastAPI(title="Student Progress System API")
