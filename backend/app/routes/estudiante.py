@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends
 from sqlmodel import Session
 from uuid import UUID
-from app.db.database import get_session
+from app.db.db import get_session
 from app.schemas.estudiante import EstudianteCreate, EstudianteRead, EstudianteUpdate
 from app.services import estudiante as service
 
