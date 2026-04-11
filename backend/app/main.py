@@ -1,5 +1,6 @@
 from fastapi import FastAPI
-from backend.app.db.db import create_db_and_tables
+from fastapi.middleware.cors import CORSMiddleware
+from app.db.db import create_db_and_tables
 from app.routes import (
     estudiante,
     categoria,
@@ -13,7 +14,16 @@ from app.routes import (
     logro_materia,
     estudiante_logro
 )
+
 app = FastAPI(title="Student Progress System API")
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 @app.on_event("startup")
 def on_startup():
