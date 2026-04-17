@@ -1,341 +1,387 @@
 """
-seed.py — Poblar la base de datos con datos de prueba realistas.
-
-Estándares aplicados (estandar_de_datos_y_lista_de_logros.docx):
-  - Código estudiantil : T000XXXXX  (5 dígitos, > 65000)  ej. T00065001
-  - Código de materia  : 4 chars    ej. ISCO, CBAS, CHUM, CHUL
-  - Formato semestre   : "PRIMER PERIODO 2026 PREGRADO"  (según Banner)
-  - Nombre nivel       : Nivel I … Nivel X
-  - Logros             : 38 logros distribuidos en 7 grupos
-
-Uso:
-    cd backend
-    python -m app.db.seed
+Seed script para AS_StudentProgressSystem
+Malla: Ingeniería de Sistemas y Computación - UTB (vigente desde 201910)
 """
-
+import uuid
 from datetime import date
-from sqlalchemy.orm import Session
-from app.db.db import engine, create_db_and_tables
-
+from sqlmodel import Session, create_engine, SQLModel
+from app.core.config import settings
 from app.models import (
-    Carreras,
-    Categorias,
-    Materias,
-    Logros,
-    LogroMaterias,
-    Estudiantes,
-    EstudiantesCarreras,
-    EstudianteMateria,
-    EstudianteLogros,
-    CarreraMateria,
+    Carreras, Categorias, Materias, CarreraMateria,
+    Estudiantes, EstudiantesCarreras, EstudianteMateria,
+    Logros, LogroMaterias, EstudianteLogros
 )
-from app.enum.escuela import Escuelas
-from app.enum.status_estudiante import StatusEstudiante
-from app.enum.status_materia import StatusMaterias
-from app.enum.status_logro import StatusLogro
+from app.enums.status_materia import StatusMaterias
+from app.enums.status_estudiante import StatusEstudiante
+from app.enums.status_logro import StatusLogro
+from app.enums.escuela import Escuelas
+import hashlib
 
-FAKE_HASH = "hashed_password_demo"
-
-
-# ─────────────────────────────────────────────────────────────────────────────
-# LOGROS — 38 logros, 7 grupos (fuente: estandar_de_datos_y_lista_de_logros)
-# ─────────────────────────────────────────────────────────────────────────────
-LOGROS_DATA = [
-    # Grupo 1 — Por materia (feedback inmediato)
-    {"nombre": "Materia aprobada",      "descripcion": " Aprobaste tu primera materia."},
-    {"nombre": "Buen desempeño",        "descripcion": " Aprobaste una materia con nota ≥ 4.0."},
-    {"nombre": "Excelencia",            "descripcion": " Aprobaste una materia con nota ≥ 4.5."},
-    {"nombre": "Primer paso",           "descripcion": " Primera materia del programa aprobada."},
-    {"nombre": "El código empieza",     "descripcion": " Aprobaste tu primera materia de programación (ISCO C02A o ISCO C03A)."},
-    {"nombre": "Base científica",       "descripcion": " Aprobaste tu primera materia de ciencias básicas (CBAS)."},
-    # Grupo 2 — Por categoría
-    {"nombre": "Científico formado",    "descripcion": " Todas las CBAS completadas (11 materias, 42 créditos)."},
-    {"nombre": "Humanista digital",     "descripcion": " Todas las CHUM completadas (7 materias, 16 créditos)."},
-    {"nombre": "Políglota",             "descripcion": " Todas las CHUL completadas (5 materias, 10 créditos)."},
-    {"nombre": "Ingeniero de sistemas", "descripcion": " Núcleo ISCO completado (31 materias, 94 créditos)."},
-    {"nombre": "Libre elección",        "descripcion": " Todas las electivas complementarias aprobadas."},
-    # Grupo 3 — Por progreso académico
-    {"nombre": "Arrancando fuerte",     "descripcion": " 25% del programa completado (≥ 40 créditos aprobados)."},
-    {"nombre": "Mitad del camino",      "descripcion": " 50% del programa completado (≥ 81 créditos aprobados)."},
-    {"nombre": "En la recta final",     "descripcion": " 75% del programa completado (≥ 121 créditos aprobados)."},
-    {"nombre": "Programa completo",     "descripcion": " 100% del programa completado (162 créditos)."},
-    {"nombre": "Décima superada",       "descripcion": " 10 materias aprobadas."},
-    {"nombre": "Veinte arriba",         "descripcion": " 20 materias aprobadas."},
-    {"nombre": "Treinta y contando",    "descripcion": " 30 materias aprobadas."},
-    {"nombre": "Cuarenta logradas",     "descripcion": " 40 materias aprobadas."},
-    {"nombre": "Graduando",             "descripcion": " 55 materias aprobadas."},
-    # Grupo 4 — Por rendimiento académico
-    {"nombre": "Cinco con distinción",  "descripcion": " 5 materias aprobadas con nota ≥ 4.0."},
-    {"nombre": "Diez con distinción",   "descripcion": " 10 materias aprobadas con nota ≥ 4.0."},
-    {"nombre": "Veinte con distinción", "descripcion": " 20 materias aprobadas con nota ≥ 4.0."},
-    {"nombre": "Promedio alto",         "descripcion": " Promedio acumulado ≥ 4.0."},
-    {"nombre": "Matrícula de honor",    "descripcion": " Promedio acumulado ≥ 4.5."},
-    # Grupo 5 — Disciplina
-    {"nombre": "Sin tropiezos",         "descripcion": " No has reprobado ninguna materia."},
-    {"nombre": "Levantándome",          "descripcion": " Recuperaste una materia que habías reprobado."},
-    {"nombre": "Racha ganadora",        "descripcion": " 3 semestres consecutivos sin reprobar."},
-    {"nombre": "Semestre perfecto",     "descripcion": " Aprobaste todas las materias de un semestre."},
-    # Grupo 6 — Hitos de la malla
-    {"nombre": "Nivel I superado",          "descripcion": " Completaste el primer semestre (16 créditos, 7 materias Nivel I)."},
-    {"nombre": "Fundamentos sólidos",       "descripcion": " Completaste Fundamentos de Programación (ISCO C02A)."},
-    {"nombre": "Estructuras dominadas",     "descripcion": " Completaste Estructura de Datos (ISCO C05A)."},
-    {"nombre": "Base de datos lista",       "descripcion": " Completaste Base de Datos (ISCO A01A)."},
-    {"nombre": "Arquitecto de software",    "descripcion": " Completaste Arquitectura de Software (ISCO A04A)."},
-    {"nombre": "Proyecto iniciado",         "descripcion": " Completaste Proyecto de Ingeniería I (ISCO P01A)."},
-    {"nombre": "Proyecto finalizado",       "descripcion": " Completaste Proyecto de Ingeniería II (ISCO P02A)."},
-    {"nombre": "Práctica completada",       "descripcion": " Completaste la Práctica Profesional (ISCO P03A)."},
-    # Grupo 7 — Alto impacto
-    {"nombre": "Progreso perfecto",         "descripcion": " Todas las materias cursadas están aprobadas (0 reprobadas, ≥ 1 aprobada)."},
-]
-
-# ─────────────────────────────────────────────────────────────────────────────
-# MATERIAS — malla Ingeniería de Sistemas UTB
-# Código categoría = 4 chars (ISCO, CBAS, CHUM, CHUL)
-# ─────────────────────────────────────────────────────────────────────────────
-MATERIAS_DATA = [
-    # CBAS — 11 materias, 42 créditos
-    {"nombre": "Cálculo Diferencial",              "cat": "CBAS", "creditos": 4},
-    {"nombre": "Cálculo Integral",                 "cat": "CBAS", "creditos": 4},
-    {"nombre": "Álgebra Lineal",                   "cat": "CBAS", "creditos": 3},
-    {"nombre": "Ecuaciones Diferenciales",         "cat": "CBAS", "creditos": 4},
-    {"nombre": "Física Mecánica",                  "cat": "CBAS", "creditos": 4},
-    {"nombre": "Física Eléctrica",                 "cat": "CBAS", "creditos": 4},
-    {"nombre": "Estadística y Probabilidad",       "cat": "CBAS", "creditos": 3},
-    {"nombre": "Química General",                  "cat": "CBAS", "creditos": 4},
-    {"nombre": "Introducción a la Ingeniería",     "cat": "CBAS", "creditos": 2},
-    {"nombre": "Cálculo Vectorial",                "cat": "CBAS", "creditos": 4},
-    {"nombre": "Investigación de Operaciones",     "cat": "CBAS", "creditos": 6},
-    # CHUM — 7 materias, 16 créditos
-    {"nombre": "Ética Profesional",                "cat": "CHUM", "creditos": 2},
-    {"nombre": "Constitución Política",            "cat": "CHUM", "creditos": 2},
-    {"nombre": "Cátedra UTB",                      "cat": "CHUM", "creditos": 2},
-    {"nombre": "Electiva Humanidades I",           "cat": "CHUM", "creditos": 3},
-    {"nombre": "Electiva Humanidades II",          "cat": "CHUM", "creditos": 3},
-    {"nombre": "Emprendimiento e Innovación",      "cat": "CHUM", "creditos": 2},
-    {"nombre": "Responsabilidad Social",           "cat": "CHUM", "creditos": 2},
-    # CHUL — 5 materias, 10 créditos
-    {"nombre": "Inglés I",                         "cat": "CHUL", "creditos": 2},
-    {"nombre": "Inglés II",                        "cat": "CHUL", "creditos": 2},
-    {"nombre": "Inglés III",                       "cat": "CHUL", "creditos": 2},
-    {"nombre": "Inglés IV",                        "cat": "CHUL", "creditos": 2},
-    {"nombre": "Inglés V",                         "cat": "CHUL", "creditos": 2},
-    # ISCO — núcleo de sistemas
-    {"nombre": "Fundamentos de Programación",      "cat": "ISCO", "creditos": 4},  # C02A
-    {"nombre": "Programación Orientada a Objetos", "cat": "ISCO", "creditos": 4},  # C03A
-    {"nombre": "Estructura de Datos",              "cat": "ISCO", "creditos": 4},  # C05A
-    {"nombre": "Base de Datos",                    "cat": "ISCO", "creditos": 3},  # A01A
-    {"nombre": "Arquitectura de Software",         "cat": "ISCO", "creditos": 3},  # A04A
-    {"nombre": "Proyecto de Ingeniería I",         "cat": "ISCO", "creditos": 3},  # P01A
-    {"nombre": "Proyecto de Ingeniería II",        "cat": "ISCO", "creditos": 3},  # P02A
-    {"nombre": "Práctica Profesional",             "cat": "ISCO", "creditos": 9},  # P03A
-    {"nombre": "Redes de Computadores",            "cat": "ISCO", "creditos": 3},
-    {"nombre": "Sistemas Operativos",              "cat": "ISCO", "creditos": 3},
-    {"nombre": "Ingeniería de Software",           "cat": "ISCO", "creditos": 3},
-]
+engine = create_engine(settings.DATABASE_URL, echo=False)
 
 
-def seed() -> None:
-    create_db_and_tables()
+def hash_password(password: str) -> str:
+    return hashlib.sha256(password.encode()).hexdigest()
 
-    with Session(engine) as db:
-        if db.query(Carreras).first():
-            print("  La base de datos ya tiene datos. Seed omitido.")
-            return
 
-        print(" Iniciando seed...")
+def seed():
+    SQLModel.metadata.create_all(engine)
+    with Session(engine) as session:
 
-        # ── 1. Carreras ───────────────────────────────────────────────────────
-        ing_sistemas   = Carreras(nombre="Ingeniería de Sistemas",    codigo="ISIS", escuela=Escuelas.etd)
-        ing_industrial = Carreras(nombre="Ingeniería Industrial",      codigo="IIND", escuela=Escuelas.eiad)
-        administracion = Carreras(nombre="Administración de Empresas", codigo="ADME", escuela=Escuelas.enls)
-        db.add_all([ing_sistemas, ing_industrial, administracion])
-        db.flush()
+        # ─────────────────────────────────────────
+        # CATEGORÍAS
+        # ─────────────────────────────────────────
+        cat_cbas = Categorias(id_categoria=uuid.uuid4(), codigo="CBAS", nombre="Ciencias Básicas")
+        cat_chum = Categorias(id_categoria=uuid.uuid4(), codigo="CHUM", nombre="Humanidades")
+        cat_chul = Categorias(id_categoria=uuid.uuid4(), codigo="CHUL", nombre="Idiomas")
+        cat_isco = Categorias(id_categoria=uuid.uuid4(), codigo="ISCO", nombre="Ingeniería de Sistemas")
+        cat_ecou = Categorias(id_categoria=uuid.uuid4(), codigo="ECOU", nombre="Desarrollo Universitario")
+        cat_aemp = Categorias(id_categoria=uuid.uuid4(), codigo="AEMP", nombre="Área Empresarial")
+        cat_econ = Categorias(id_categoria=uuid.uuid4(), codigo="ECON", nombre="Economía")
+        cat_iind = Categorias(id_categoria=uuid.uuid4(), codigo="IIND", nombre="Ingeniería Industrial")
 
-        # ── 2. Categorías ─────────────────────────────────────────────────────
-        cat_cbas = Categorias(codigo="CBAS", nombre="Ciencias Básicas")
-        cat_chum = Categorias(codigo="CHUM", nombre="Humanidades")
-        cat_chul = Categorias(codigo="CHUL", nombre="Lenguas")
-        cat_isco = Categorias(codigo="ISCO", nombre="Núcleo de Sistemas")
-        db.add_all([cat_cbas, cat_chum, cat_chul, cat_isco])
-        db.flush()
+        for cat in [cat_cbas, cat_chum, cat_chul, cat_isco, cat_ecou, cat_aemp, cat_econ, cat_iind]:
+            session.add(cat)
+        session.commit()
 
-        cat_map = {
-            "CBAS": cat_cbas.id_categoria,
-            "CHUM": cat_chum.id_categoria,
-            "CHUL": cat_chul.id_categoria,
-            "ISCO": cat_isco.id_categoria,
+        # ─────────────────────────────────────────
+        # CARRERA
+        # ─────────────────────────────────────────
+        carrera = Carreras(
+            id_carrera=uuid.uuid4(),
+            nombre="Ingeniería de Sistemas y Computación",
+            codigo="ISCO",
+            escuela=Escuelas.etd
+        )
+        session.add(carrera)
+        session.commit()
+
+        # ─────────────────────────────────────────
+        # MATERIAS — con nombre, código y créditos
+        # de la malla oficial UTB 201910
+        # ─────────────────────────────────────────
+
+        # NIVEL I
+        m_h01a = Materias(id_materia=uuid.uuid4(), nombre="Taller de Comprensión Lectora",      codigo="H01A", creditos=3, id_categoria=cat_chum.id_categoria)
+        m_m01a = Materias(id_materia=uuid.uuid4(), nombre="Cálculo Diferencial",                codigo="M01A", creditos=4, id_categoria=cat_cbas.id_categoria)
+        m_m02a = Materias(id_materia=uuid.uuid4(), nombre="Matemáticas Básicas",                codigo="M02A", creditos=2, id_categoria=cat_cbas.id_categoria)
+        m_q01a = Materias(id_materia=uuid.uuid4(), nombre="Química General",                    codigo="Q01A", creditos=3, id_categoria=cat_cbas.id_categoria)
+        m_u01a = Materias(id_materia=uuid.uuid4(), nombre="Desarrollo Universitario",           codigo="U01A", creditos=0, id_categoria=cat_ecou.id_categoria)
+        m_c01a = Materias(id_materia=uuid.uuid4(), nombre="Sem Ing Sistemas y Computación",     codigo="C01A", creditos=1, id_categoria=cat_isco.id_categoria)
+        m_c02a = Materias(id_materia=uuid.uuid4(), nombre="Fundamentos de Programación",        codigo="C02A", creditos=3, id_categoria=cat_isco.id_categoria)
+
+        # NIVEL II
+        m_le1a = Materias(id_materia=uuid.uuid4(), nombre="Lengua Extranjera I",                codigo="LE1A", creditos=2, id_categoria=cat_chul.id_categoria)
+        m_f01a = Materias(id_materia=uuid.uuid4(), nombre="Física Mecánica",                    codigo="F01A", creditos=4, id_categoria=cat_cbas.id_categoria)
+        m_m03a = Materias(id_materia=uuid.uuid4(), nombre="Cálculo Integral",                   codigo="M03A", creditos=4, id_categoria=cat_cbas.id_categoria)
+        m_m04a = Materias(id_materia=uuid.uuid4(), nombre="Álgebra Lineal",                     codigo="M04A", creditos=3, id_categoria=cat_cbas.id_categoria)
+        m_c03a = Materias(id_materia=uuid.uuid4(), nombre="Programación",                       codigo="C03A", creditos=3, id_categoria=cat_isco.id_categoria)
+
+        # NIVEL III
+        m_le2a = Materias(id_materia=uuid.uuid4(), nombre="Lengua Extranjera II",               codigo="LE2A", creditos=2, id_categoria=cat_chul.id_categoria)
+        m_h02a = Materias(id_materia=uuid.uuid4(), nombre="Taller de Escritura Académica",      codigo="H02A", creditos=3, id_categoria=cat_chum.id_categoria)
+        m_f02a = Materias(id_materia=uuid.uuid4(), nombre="Física Electricidad y Magnetismo",   codigo="F02A", creditos=4, id_categoria=cat_cbas.id_categoria)
+        m_m05a = Materias(id_materia=uuid.uuid4(), nombre="Cálculo Vectorial",                  codigo="M05A", creditos=4, id_categoria=cat_cbas.id_categoria)
+        m_c04a = Materias(id_materia=uuid.uuid4(), nombre="Programación Orientada a Objetos",   codigo="C04A", creditos=3, id_categoria=cat_isco.id_categoria)
+
+        # NIVEL IV
+        m_le3a = Materias(id_materia=uuid.uuid4(), nombre="Lengua Extranjera III",              codigo="LE3A", creditos=2, id_categoria=cat_chul.id_categoria)
+        m_f03a = Materias(id_materia=uuid.uuid4(), nombre="Física Calor y Ondas",               codigo="F03A", creditos=4, id_categoria=cat_cbas.id_categoria)
+        m_m06a = Materias(id_materia=uuid.uuid4(), nombre="Ecuaciones Dif y en Diferencia",     codigo="M06A", creditos=4, id_categoria=cat_cbas.id_categoria)
+        m_c05a = Materias(id_materia=uuid.uuid4(), nombre="Estructura de Datos",                codigo="C05A", creditos=3, id_categoria=cat_isco.id_categoria)
+        m_c06a = Materias(id_materia=uuid.uuid4(), nombre="Matemática Discreta",                codigo="C06A", creditos=3, id_categoria=cat_isco.id_categoria)
+
+        # NIVEL V
+        m_le4a = Materias(id_materia=uuid.uuid4(), nombre="Lengua Extranjera IV",               codigo="LE4A", creditos=2, id_categoria=cat_chul.id_categoria)
+        m_h03a = Materias(id_materia=uuid.uuid4(), nombre="Constitución Política",              codigo="H03A", creditos=2, id_categoria=cat_chum.id_categoria)
+        m_e01a = Materias(id_materia=uuid.uuid4(), nombre="Estadística y Probabilidad",         codigo="E01A", creditos=3, id_categoria=cat_cbas.id_categoria)
+        m_a01a = Materias(id_materia=uuid.uuid4(), nombre="Base de Datos",                      codigo="A01A", creditos=3, id_categoria=cat_isco.id_categoria)
+        m_a02a = Materias(id_materia=uuid.uuid4(), nombre="Desarrollo de Software",             codigo="A02A", creditos=3, id_categoria=cat_isco.id_categoria)
+        m_a03a = Materias(id_materia=uuid.uuid4(), nombre="Algoritmo y Complejidad",            codigo="A03A", creditos=3, id_categoria=cat_isco.id_categoria)
+
+        # NIVEL VI
+        m_le5a = Materias(id_materia=uuid.uuid4(), nombre="Lengua Extranjera V",                codigo="LE5A", creditos=2, id_categoria=cat_chul.id_categoria)
+        m_e02a = Materias(id_materia=uuid.uuid4(), nombre="Estadística Inferencial",            codigo="E02A", creditos=3, id_categoria=cat_cbas.id_categoria)
+        m_g04a = Materias(id_materia=uuid.uuid4(), nombre="Creatividad y Emprendimiento",       codigo="G04A", creditos=3, id_categoria=cat_aemp.id_categoria)
+        m_a04a = Materias(id_materia=uuid.uuid4(), nombre="Arquitectura de Software",           codigo="A04A", creditos=3, id_categoria=cat_isco.id_categoria)
+        m_c07a = Materias(id_materia=uuid.uuid4(), nombre="Procesamiento Numérico",             codigo="C07A", creditos=3, id_categoria=cat_isco.id_categoria)
+        m_c08a = Materias(id_materia=uuid.uuid4(), nombre="Comunicaciones y Redes",             codigo="C08A", creditos=3, id_categoria=cat_isco.id_categoria)
+
+        # NIVEL VII
+        m_h05a = Materias(id_materia=uuid.uuid4(), nombre="Ciudadanía Global",                  codigo="H05A", creditos=2, id_categoria=cat_chum.id_categoria)
+        m_m12a = Materias(id_materia=uuid.uuid4(), nombre="Formul y Evaluación de Proyectos",   codigo="M12A", creditos=3, id_categoria=cat_econ.id_categoria)
+        m_a05a = Materias(id_materia=uuid.uuid4(), nombre="Ingeniería de Software",             codigo="A05A", creditos=3, id_categoria=cat_isco.id_categoria)
+        m_c09a = Materias(id_materia=uuid.uuid4(), nombre="Arquitectura del Computador",        codigo="C09A", creditos=3, id_categoria=cat_isco.id_categoria)
+        m_c10a = Materias(id_materia=uuid.uuid4(), nombre="Sistemas y Modelos",                 codigo="C10A", creditos=3, id_categoria=cat_isco.id_categoria)
+        m_ec1a = Materias(id_materia=uuid.uuid4(), nombre="Electiva Complementaria I",          codigo="EC1A", creditos=3, id_categoria=cat_isco.id_categoria)
+
+        # NIVEL VIII
+        m_hu1a = Materias(id_materia=uuid.uuid4(), nombre="Electiva de Humanidades I",          codigo="HU1A", creditos=2, id_categoria=cat_chum.id_categoria)
+        m_a06a = Materias(id_materia=uuid.uuid4(), nombre="Inteligencia Artificial",            codigo="A06A", creditos=3, id_categoria=cat_isco.id_categoria)
+        m_a07a = Materias(id_materia=uuid.uuid4(), nombre="Infraestructura para TI",            codigo="A07A", creditos=3, id_categoria=cat_isco.id_categoria)
+        m_c11a = Materias(id_materia=uuid.uuid4(), nombre="Sistemas Operativos",                codigo="C11A", creditos=3, id_categoria=cat_isco.id_categoria)
+        m_ec2a = Materias(id_materia=uuid.uuid4(), nombre="Electiva Complementaria II",         codigo="EC2A", creditos=3, id_categoria=cat_isco.id_categoria)
+        m_p01a = Materias(id_materia=uuid.uuid4(), nombre="Proyecto de Ingeniería I",           codigo="P01A", creditos=3, id_categoria=cat_isco.id_categoria)
+
+        # NIVEL IX
+        m_hu2a = Materias(id_materia=uuid.uuid4(), nombre="Electiva de Humanidades II",         codigo="HU2A", creditos=2, id_categoria=cat_chum.id_categoria)
+        m_ee1a = Materias(id_materia=uuid.uuid4(), nombre="Electiva Empresarial",               codigo="EE1A", creditos=3, id_categoria=cat_iind.id_categoria)
+        m_a08a = Materias(id_materia=uuid.uuid4(), nombre="Computación en Paralelo",            codigo="A08A", creditos=3, id_categoria=cat_isco.id_categoria)
+        m_c12a = Materias(id_materia=uuid.uuid4(), nombre="Tóp Esp de Ciencias Computación",    codigo="C12A", creditos=3, id_categoria=cat_isco.id_categoria)
+        m_ec3a = Materias(id_materia=uuid.uuid4(), nombre="Electiva Complementaria III",        codigo="EC3A", creditos=3, id_categoria=cat_isco.id_categoria)
+        m_p02a = Materias(id_materia=uuid.uuid4(), nombre="Proyecto de Ingeniería II",          codigo="P02A", creditos=3, id_categoria=cat_isco.id_categoria)
+
+        # NIVEL X
+        m_h04a = Materias(id_materia=uuid.uuid4(), nombre="Ética",                              codigo="H04A", creditos=2, id_categoria=cat_chum.id_categoria)
+        m_ec4a = Materias(id_materia=uuid.uuid4(), nombre="Electiva Complementaria IV",         codigo="EC4A", creditos=3, id_categoria=cat_isco.id_categoria)
+        m_p03a = Materias(id_materia=uuid.uuid4(), nombre="Práctica Profesional",               codigo="P03A", creditos=9, id_categoria=cat_isco.id_categoria)
+
+        todas_materias = [
+            m_h01a, m_m01a, m_m02a, m_q01a, m_u01a, m_c01a, m_c02a,
+            m_le1a, m_f01a, m_m03a, m_m04a, m_c03a,
+            m_le2a, m_h02a, m_f02a, m_m05a, m_c04a,
+            m_le3a, m_f03a, m_m06a, m_c05a, m_c06a,
+            m_le4a, m_h03a, m_e01a, m_a01a, m_a02a, m_a03a,
+            m_le5a, m_e02a, m_g04a, m_a04a, m_c07a, m_c08a,
+            m_h05a, m_m12a, m_a05a, m_c09a, m_c10a, m_ec1a,
+            m_hu1a, m_a06a, m_a07a, m_c11a, m_ec2a, m_p01a,
+            m_hu2a, m_ee1a, m_a08a, m_c12a, m_ec3a, m_p02a,
+            m_h04a, m_ec4a, m_p03a,
+        ]
+        for m in todas_materias:
+            session.add(m)
+        session.commit()
+
+        # ─────────────────────────────────────────
+        # CARRERA - MATERIA (malla de ing de sistemas y computacion)
+        # ─────────────────────────────────────────
+        for m in todas_materias:
+            session.add(CarreraMateria(id_carrera=carrera.id_carrera, id_materia=m.id_materia))
+        session.commit()
+
+        # ─────────────────────────────────────────
+        # LOGROS (38)
+        # ─────────────────────────────────────────
+        logros_data = [
+            # Grupo 1 — Por materia
+            ("Materia aprobada",        "Aprobaste tu primera materia"),
+            ("Buen desempeño",          "Aprobaste una materia con nota ≥ 4.0"),
+            ("Excelencia",              "Aprobaste una materia con nota ≥ 4.5"),
+            ("Primer paso",             "Primera materia del programa aprobada"),
+            ("El código empieza",       "Aprobaste tu primera materia de programación"),
+            ("Base científica",         "Aprobaste tu primera materia de ciencias básicas"),
+            # Grupo 2 — Por categoría
+            ("Científico formado",      "Todas las CBAS completadas (11 materias, 42 créditos)"),
+            ("Humanista digital",       "Todas las CHUM completadas (7 materias, 16 créditos)"),
+            ("Políglota",               "Todas las CHUL completadas (5 materias, 10 créditos)"),
+            ("Ingeniero de sistemas",   "Núcleo ISCO completado (31 materias, 94 créditos)"),
+            ("Libre elección",          "Todas las electivas complementarias completadas"),
+            # Grupo 3 — Por progreso
+            ("Arrancando fuerte",       "25% del programa completado (≥ 40 créditos)"),
+            ("Mitad del camino",        "50% del programa completado (≥ 81 créditos)"),
+            ("En la recta final",       "75% del programa completado (≥ 121 créditos)"),
+            ("Programa completo",       "100% del programa completado (162 créditos)"),
+            ("Décima superada",         "10 materias aprobadas"),
+            ("Veinte arriba",           "20 materias aprobadas"),
+            ("Treinta y contando",      "30 materias aprobadas"),
+            ("Cuarenta logradas",       "40 materias aprobadas"),
+            ("Graduando",               "55 materias aprobadas (programa completo)"),
+            # Grupo 4 — Por rendimiento
+            ("Cinco con distinción",    "5 materias aprobadas con nota ≥ 4.0"),
+            ("Diez con distinción",     "10 materias aprobadas con nota ≥ 4.0"),
+            ("Veinte con distinción",   "20 materias aprobadas con nota ≥ 4.0"),
+            ("Promedio alto",           "Promedio acumulado ≥ 4.0"),
+            ("Matrícula de honor",      "Promedio acumulado ≥ 4.5"),
+            # Grupo 5 — Disciplina
+            ("Sin tropiezos",           "No has reprobado ninguna materia"),
+            ("Levantándome",            "Recuperaste una materia que habías reprobado"),
+            ("Racha ganadora",          "3 semestres consecutivos sin reprobar"),
+            ("Semestre perfecto",       "Aprobaste todas las materias de un semestre"),
+            # Grupo 6 — Hitos de la malla
+            ("Nivel I superado",        "Completaste el primer semestre (16 créditos)"),
+            ("Fundamentos sólidos",     "Completaste Fundamentos de Programación"),
+            ("Estructuras dominadas",   "Completaste Estructura de Datos"),
+            ("Base de datos lista",     "Completaste Base de Datos"),
+            ("Arquitecto de software",  "Completaste Arquitectura de Software"),
+            ("Proyecto iniciado",       "Completaste Proyecto de Ingeniería I"),
+            ("Proyecto finalizado",     "Completaste Proyecto de Ingeniería II"),
+            ("Práctica completada",     "Completaste la Práctica Profesional"),
+            # Grupo 7 — Alto impacto
+            ("Progreso perfecto",       "Todas las materias cursadas están aprobadas"),
+        ]
+
+        logros = []
+        for nombre, desc in logros_data:
+            l = Logros(id_logro=uuid.uuid4(), nombre_logro=nombre, descripcion=desc)
+            session.add(l)
+            logros.append(l)
+        session.commit()
+
+        # Asociar logros de hitos a sus materias específicas
+        hitos = {
+            "Fundamentos sólidos":    m_c02a,
+            "Estructuras dominadas":  m_c05a,
+            "Base de datos lista":    m_a01a,
+            "Arquitecto de software": m_a04a,
+            "Proyecto iniciado":      m_p01a,
+            "Proyecto finalizado":    m_p02a,
+            "Práctica completada":    m_p03a,
+        }
+        logro_map = {l.nombre_logro: l for l in logros}
+
+        for nombre_logro, materia in hitos.items():
+            lm = LogroMaterias(
+                id_logromateria=uuid.uuid4(),
+                id_logro=logro_map[nombre_logro].id_logro,
+                id_materia=materia.id_materia
+            )
+            session.add(lm)
+
+        # Logros sin materia específica (generales)
+        for l in logros:
+            if l.nombre_logro not in hitos:
+                lm = LogroMaterias(
+                    id_logromateria=uuid.uuid4(),
+                    id_logro=l.id_logro,
+                    id_materia=None
+                )
+                session.add(lm)
+        session.commit()
+
+        # ─────────────────────────────────────────
+        # ESTUDIANTES SIMULADOS (5 perfiles)
+        # ─────────────────────────────────────────
+        estudiantes_data = [
+            # (nombre, apellido, codigo, correo, semestre_actual, materias_aprobadas, perfil)
+            ("Ana",      "García",    "T00065001", "anagarcia@utb.edu.co",      "Nivel V",   "avanzado"),
+            ("Carlos",   "Martínez",  "T00065002", "carlosmartinez@utb.edu.co", "Nivel III", "intermedio"),
+            ("Laura",    "Rodríguez", "T00065003", "laurarodriguez@utb.edu.co", "Nivel VII", "senior"),
+            ("Miguel",   "López",     "T00065004", "miguellopez@utb.edu.co",    "Nivel I",   "nuevo"),
+            ("Valeria",  "Torres",    "T00065005", "valeriatorres@utb.edu.co",  "Nivel IX",  "casi_graduado"),
+        ]
+
+        # Materias por nivel para simular progreso realista
+        nivel_1 = [m_h01a, m_m01a, m_m02a, m_q01a, m_u01a, m_c01a, m_c02a]
+        nivel_2 = [m_le1a, m_f01a, m_m03a, m_m04a, m_c03a]
+        nivel_3 = [m_le2a, m_h02a, m_f02a, m_m05a, m_c04a]
+        nivel_4 = [m_le3a, m_f03a, m_m06a, m_c05a, m_c06a]
+        nivel_5 = [m_le4a, m_h03a, m_e01a, m_a01a, m_a02a, m_a03a]
+        nivel_6 = [m_le5a, m_e02a, m_g04a, m_a04a, m_c07a, m_c08a]
+        nivel_7 = [m_h05a, m_m12a, m_a05a, m_c09a, m_c10a, m_ec1a]
+        nivel_8 = [m_hu1a, m_a06a, m_a07a, m_c11a, m_ec2a, m_p01a]
+        nivel_9 = [m_hu2a, m_ee1a, m_a08a, m_c12a, m_ec3a, m_p02a]
+
+        perfiles_materias = {
+            "nuevo":         [],                                                          # Sin materias aún
+            "intermedio":    nivel_1 + nivel_2,                                           # Niveles I y II aprobados
+            "avanzado":      nivel_1 + nivel_2 + nivel_3 + nivel_4,                      # Niveles I-IV aprobados
+            "senior":        nivel_1 + nivel_2 + nivel_3 + nivel_4 + nivel_5 + nivel_6,  # Niveles I-VI aprobados
+            "casi_graduado": nivel_1 + nivel_2 + nivel_3 + nivel_4 + nivel_5 +
+                             nivel_6 + nivel_7 + nivel_8,                                 # Niveles I-VIII aprobados
         }
 
-        # ── 3. Materias ───────────────────────────────────────────────────────
-        materias_obj: list[tuple[dict, Materias]] = []
-        for m in MATERIAS_DATA:
-            obj = Materias(nombre=m["nombre"], creditos=m["creditos"], id_categoria=cat_map[m["cat"]])
-            db.add(obj)
-            materias_obj.append((m, obj))
-        db.flush()
+        perfiles_notas = {
+            "nuevo":         [],
+            "intermedio":    [3.5, 4.0, 3.8, 3.2, 4.5, 4.2, 3.9, 3.7, 4.1, 3.6, 4.3, 3.5],
+            "avanzado":      [4.0, 4.2, 3.8, 4.5, 4.1, 3.9, 4.3, 4.0, 3.7, 4.2, 4.4, 3.8,
+                              4.1, 3.9, 4.0, 4.3, 3.8],
+            "senior":        [4.2, 4.0, 3.9, 4.5, 4.3, 4.1, 3.8, 4.2, 4.0, 4.4, 3.9, 4.1,
+                              4.3, 4.0, 3.8, 4.2, 4.5, 4.1, 3.9, 4.0, 4.2, 4.3, 3.8, 4.1,
+                              4.0, 4.2, 3.9, 4.3],
+            "casi_graduado": [4.5, 4.3, 4.0, 4.8, 4.2, 4.5, 4.1, 4.3, 4.6, 4.2, 4.4, 4.0,
+                              4.3, 4.5, 4.2, 4.6, 4.1, 4.3, 4.5, 4.0, 4.2, 4.4, 4.3, 4.5,
+                              4.1, 4.2, 4.5, 4.3, 4.6, 4.2, 4.4, 4.5, 4.1, 4.3, 4.2, 4.5,
+                              4.3, 4.6, 4.2, 4.4, 4.5, 4.3, 4.1, 4.5],
+        }
 
-        mat_by_nombre = {m.nombre: m for _, m in materias_obj}
+        semestres_cursados = {
+            "nuevo":         ["PRIMER PERIODO 2026 PREGRADO"],
+            "intermedio":    ["PRIMER PERIODO 2024 PREGRADO", "SEGUNDO PERIODO 2024 PREGRADO"],
+            "avanzado":      ["PRIMER PERIODO 2023 PREGRADO", "SEGUNDO PERIODO 2023 PREGRADO",
+                              "PRIMER PERIODO 2024 PREGRADO", "SEGUNDO PERIODO 2024 PREGRADO"],
+            "senior":        ["PRIMER PERIODO 2022 PREGRADO", "SEGUNDO PERIODO 2022 PREGRADO",
+                              "PRIMER PERIODO 2023 PREGRADO", "SEGUNDO PERIODO 2023 PREGRADO",
+                              "PRIMER PERIODO 2024 PREGRADO", "SEGUNDO PERIODO 2024 PREGRADO"],
+            "casi_graduado": ["PRIMER PERIODO 2021 PREGRADO", "SEGUNDO PERIODO 2021 PREGRADO",
+                              "PRIMER PERIODO 2022 PREGRADO", "SEGUNDO PERIODO 2022 PREGRADO",
+                              "PRIMER PERIODO 2023 PREGRADO", "SEGUNDO PERIODO 2023 PREGRADO",
+                              "PRIMER PERIODO 2024 PREGRADO", "SEGUNDO PERIODO 2024 PREGRADO"],
+        }
 
-        # ── 4. Carrera ↔ Materia ──────────────────────────────────────────────
-        for _, mat in materias_obj:
-            db.add(CarreraMateria(id_carrera=ing_sistemas.id_carrera, id_materia=mat.id_materia))
-        for m_data, mat in materias_obj:
-            if m_data["cat"] in ("CBAS", "CHUM", "CHUL"):
-                db.add(CarreraMateria(id_carrera=ing_industrial.id_carrera, id_materia=mat.id_materia))
-        db.flush()
+        fechas_admision = {
+            "nuevo":         date(2026, 1, 15),
+            "intermedio":    date(2024, 1, 15),
+            "avanzado":      date(2023, 1, 15),
+            "senior":        date(2022, 1, 15),
+            "casi_graduado": date(2021, 1, 15),
+        }
 
-        # ── 5. Logros (38) ────────────────────────────────────────────────────
-        logros_obj: list[Logros] = []
-        for l in LOGROS_DATA:
-            obj = Logros(nombre=l["nombre"], descripcion=l["descripcion"])
-            db.add(obj)
-            logros_obj.append(obj)
-        db.flush()
-
-        # ── 6. LogroMaterias — hitos de la malla vinculados a materia ─────────
-        def link(logro_idx: int, nombre_materia: str) -> LogroMaterias:
-            lm = LogroMaterias(
-                id_logro=logros_obj[logro_idx].id_logro,
-                id_materia=mat_by_nombre[nombre_materia].id_materia,
+        for nombre, apellido, codigo, correo, semestre_actual, perfil in estudiantes_data:
+            est = Estudiantes(
+                id_estudiante=uuid.uuid4(),
+                nombre=nombre,
+                apellido=apellido,
+                codigo=codigo,
+                correo=correo,
+                status=StatusEstudiante.activo,
+                hash_password=hash_password("Password123!")
             )
-            db.add(lm)
-            return lm
+            session.add(est)
+            session.commit()
 
-        lm_primera      = link(0,  "Fundamentos de Programación")   # Materia aprobada
-        lm_buen         = link(1,  "Cálculo Diferencial")            # Buen desempeño
-        lm_excelencia   = link(2,  "Álgebra Lineal")                 # Excelencia
-        lm_codigo       = link(4,  "Fundamentos de Programación")    # El código empieza
-        lm_base_cien    = link(5,  "Cálculo Diferencial")            # Base científica
-        lm_fund_sol     = link(30, "Fundamentos de Programación")    # Fundamentos sólidos
-        lm_estructuras  = link(31, "Estructura de Datos")            # Estructuras dominadas
-        lm_bd           = link(32, "Base de Datos")                  # Base de datos lista
-        lm_arquitecto   = link(33, "Arquitectura de Software")       # Arquitecto de software
-        lm_proy_i       = link(34, "Proyecto de Ingeniería I")       # Proyecto iniciado
-        lm_proy_ii      = link(35, "Proyecto de Ingeniería II")      # Proyecto finalizado
-        lm_practica     = link(36, "Práctica Profesional")           # Práctica completada
-        db.flush()
-
-        # ── 7. Estudiantes ────────────────────────────────────────────────────
-        # Formato : T000XXXXX — exactamente 9 chars, 5 dígitos finales > 65000
-        estudiante1 = Estudiantes(
-            nombre="Luis",      apellido="Castellanos",
-            codigo="T00065001",                          # 65001 > 65000 ✔
-            correo="luis.castellanos@utb.edu.co",
-            status=StatusEstudiante.activo, hash_password=FAKE_HASH,
-        )
-        estudiante2 = Estudiantes(
-            nombre="Valentina", apellido="Reyes",
-            codigo="T00072430",                          # 72430 > 65000 ✔
-            correo="valentina.reyes@utb.edu.co",
-            status=StatusEstudiante.activo, hash_password=FAKE_HASH,
-        )
-        estudiante3 = Estudiantes(
-            nombre="Andrés",    apellido="Martínez",
-            codigo="T00068895",                          # 68895 > 65000 ✔
-            correo="andres.martinez@utb.edu.co",
-            status=StatusEstudiante.egresado, hash_password=FAKE_HASH,
-        )
-        estudiante4 = Estudiantes(
-            nombre="Camila",    apellido="Torres",
-            codigo="T00081234",                          # 81234 > 65000 ✔
-            correo="camila.torres@utb.edu.co",
-            status=StatusEstudiante.activo, hash_password=FAKE_HASH,
-        )
-        db.add_all([estudiante1, estudiante2, estudiante3, estudiante4])
-        db.flush()
-
-        # ── 8. Estudiante ↔ Carrera ───────────────────────────────────────────
-        # Semestre formato Banner: "PRIMER PERIODO YYYY PREGRADO"
-        db.add_all([
-            EstudiantesCarreras(semestre="PRIMER PERIODO 2025 PREGRADO",  fechaadmision=date(2025, 1, 20), id_estudiante=estudiante1.id_estudiante, id_carrera=ing_sistemas.id_carrera),
-            EstudiantesCarreras(semestre="PRIMER PERIODO 2025 PREGRADO",  fechaadmision=date(2025, 1, 20), id_estudiante=estudiante2.id_estudiante, id_carrera=ing_sistemas.id_carrera),
-            EstudiantesCarreras(semestre="PRIMER PERIODO 2020 PREGRADO",  fechaadmision=date(2020, 1, 15), id_estudiante=estudiante3.id_estudiante, id_carrera=ing_industrial.id_carrera),
-            EstudiantesCarreras(semestre="SEGUNDO PERIODO 2024 PREGRADO", fechaadmision=date(2024, 7, 10), id_estudiante=estudiante4.id_estudiante, id_carrera=ing_sistemas.id_carrera),
-        ])
-        db.flush()
-
-        # ── 9. Estudiante ↔ Materia ───────────────────────────────────────────
-        # Nivel semestre: "Nivel I", "Nivel II", …
-        def em(est: Estudiantes, nombre_mat: str, status: StatusMaterias, nota: float, nivel: str) -> EstudianteMateria:
-            return EstudianteMateria(
-                status=status,
-                nota=nota,
-                semestre=f"Nivel {nivel}",
+            # Matricular en la carrera
+            ec = EstudiantesCarreras(
                 id_estudiante=est.id_estudiante,
-                Id_materia=mat_by_nombre[nombre_mat].id_materia,
+                id_carrera=carrera.id_carrera,
+                semestre=semestre_actual,
+                fecha_admision=fechas_admision[perfil]
             )
+            session.add(ec)
 
-        db.add_all([
-            # Luis — Nivel I aprobado por completo (semestre perfecto)
-            em(estudiante1, "Cálculo Diferencial",          StatusMaterias.aprobada,  4.7, "I"),
-            em(estudiante1, "Álgebra Lineal",               StatusMaterias.aprobada,  4.8, "I"),
-            em(estudiante1, "Fundamentos de Programación",  StatusMaterias.aprobada,  4.9, "I"),
-            em(estudiante1, "Inglés I",                     StatusMaterias.aprobada,  4.5, "I"),
-            em(estudiante1, "Ética Profesional",            StatusMaterias.aprobada,  4.2, "I"),
-            # Luis — Nivel II en curso
-            em(estudiante1, "Cálculo Integral",             StatusMaterias.encurso,   3.8, "II"),
-            em(estudiante1, "Estructura de Datos",          StatusMaterias.encurso,   4.1, "II"),
+            # Registrar materias aprobadas según perfil
+            materias_perfil = perfiles_materias[perfil]
+            notas_perfil = perfiles_notas[perfil]
 
-            # Valentina — buen rendimiento con una materia recuperada
-            em(estudiante2, "Cálculo Diferencial",          StatusMaterias.aprobada,  4.0, "I"),
-            em(estudiante2, "Álgebra Lineal",               StatusMaterias.aprobada,  4.6, "I"),
-            em(estudiante2, "Fundamentos de Programación",  StatusMaterias.aprobada,  3.5, "I"),
-            em(estudiante2, "Inglés I",                     StatusMaterias.aprobada,  3.9, "I"),
-            em(estudiante2, "Cálculo Integral",             StatusMaterias.reprobada, 2.5, "II"),  # reprobó
-            em(estudiante2, "Cálculo Integral",             StatusMaterias.aprobada,  3.8, "II"),  # recuperó → logro Levantándome
+            for i, materia in enumerate(materias_perfil):
+                nota = notas_perfil[i] if i < len(notas_perfil) else 3.5
+                semestre_idx = min(i // 6, len(semestres_cursados[perfil]) - 1)
+                semestre_str = semestres_cursados[perfil][semestre_idx]
 
-            # Andrés (egresado) — hitos completos
-            em(estudiante3, "Cálculo Diferencial",          StatusMaterias.aprobada,  3.8, "I"),
-            em(estudiante3, "Fundamentos de Programación",  StatusMaterias.aprobada,  4.5, "I"),
-            em(estudiante3, "Estructura de Datos",          StatusMaterias.aprobada,  4.3, "II"),
-            em(estudiante3, "Base de Datos",                StatusMaterias.aprobada,  4.6, "III"),
-            em(estudiante3, "Arquitectura de Software",     StatusMaterias.aprobada,  4.4, "IV"),
-            em(estudiante3, "Proyecto de Ingeniería I",     StatusMaterias.aprobada,  4.7, "IX"),
-            em(estudiante3, "Proyecto de Ingeniería II",    StatusMaterias.aprobada,  4.8, "X"),
-            em(estudiante3, "Práctica Profesional",         StatusMaterias.aprobada,  5.0, "X"),
+                em = EstudianteMateria(
+                    id_estudiante=est.id_estudiante,
+                    id_materia=materia.id_materia,
+                    status=StatusMaterias.aprobada,
+                    nota=nota,
+                    semestre=semestre_str
+                )
+                session.add(em)
 
-            # Camila — Nivel I, recién ingresada
-            em(estudiante4, "Cálculo Diferencial",          StatusMaterias.encurso,   0.0, "I"),
-            em(estudiante4, "Inglés I",                     StatusMaterias.encurso,   0.0, "I"),
-            em(estudiante4, "Ética Profesional",            StatusMaterias.aprobada,  4.3, "I"),
-        ])
-        db.flush()
+            # Materias en curso (nivel actual)
+            materias_en_curso = {
+                "nuevo":         nivel_1,
+                "intermedio":    nivel_3,
+                "avanzado":      nivel_5,
+                "senior":        nivel_7,
+                "casi_graduado": nivel_9,
+            }
+            for materia in materias_en_curso[perfil]:
+                em = EstudianteMateria(
+                    id_estudiante=est.id_estudiante,
+                    id_materia=materia.id_materia,
+                    status=StatusMaterias.encurso,
+                    nota=0.0,
+                    semestre="PRIMER PERIODO 2026 PREGRADO"
+                )
+                session.add(em)
 
-        # ── 10. Estudiante ↔ Logros ───────────────────────────────────────────
-        db.add_all([
-            # Luis — semestre perfecto, excelencia, primer código
-            EstudianteLogros(staus=StatusLogro.obtenido,   id_estudiante=estudiante1.id_estudiante, id_logromateria=lm_primera.id_logromateria),
-            EstudianteLogros(staus=StatusLogro.obtenido,   id_estudiante=estudiante1.id_estudiante, id_logromateria=lm_excelencia.id_logromateria),
-            EstudianteLogros(staus=StatusLogro.obtenido,   id_estudiante=estudiante1.id_estudiante, id_logromateria=lm_codigo.id_logromateria),
-            EstudianteLogros(staus=StatusLogro.obtenido,   id_estudiante=estudiante1.id_estudiante, id_logromateria=lm_fund_sol.id_logromateria),
-            EstudianteLogros(staus=StatusLogro.noobtenido, id_estudiante=estudiante1.id_estudiante, id_logromateria=lm_estructuras.id_logromateria),
+            session.commit()
 
-            # Valentina — buen desempeño, ciencias básicas
-            EstudianteLogros(staus=StatusLogro.obtenido,   id_estudiante=estudiante2.id_estudiante, id_logromateria=lm_primera.id_logromateria),
-            EstudianteLogros(staus=StatusLogro.obtenido,   id_estudiante=estudiante2.id_estudiante, id_logromateria=lm_buen.id_logromateria),
-            EstudianteLogros(staus=StatusLogro.obtenido,   id_estudiante=estudiante2.id_estudiante, id_logromateria=lm_base_cien.id_logromateria),
-
-            # Andrés — todos los hitos de la malla
-            EstudianteLogros(staus=StatusLogro.obtenido, id_estudiante=estudiante3.id_estudiante, id_logromateria=lm_primera.id_logromateria),
-            EstudianteLogros(staus=StatusLogro.obtenido, id_estudiante=estudiante3.id_estudiante, id_logromateria=lm_codigo.id_logromateria),
-            EstudianteLogros(staus=StatusLogro.obtenido, id_estudiante=estudiante3.id_estudiante, id_logromateria=lm_estructuras.id_logromateria),
-            EstudianteLogros(staus=StatusLogro.obtenido, id_estudiante=estudiante3.id_estudiante, id_logromateria=lm_bd.id_logromateria),
-            EstudianteLogros(staus=StatusLogro.obtenido, id_estudiante=estudiante3.id_estudiante, id_logromateria=lm_arquitecto.id_logromateria),
-            EstudianteLogros(staus=StatusLogro.obtenido, id_estudiante=estudiante3.id_estudiante, id_logromateria=lm_proy_i.id_logromateria),
-            EstudianteLogros(staus=StatusLogro.obtenido, id_estudiante=estudiante3.id_estudiante, id_logromateria=lm_proy_ii.id_logromateria),
-            EstudianteLogros(staus=StatusLogro.obtenido, id_estudiante=estudiante3.id_estudiante, id_logromateria=lm_practica.id_logromateria),
-
-            # Camila — aún sin logros de materia
-            EstudianteLogros(staus=StatusLogro.noobtenido, id_estudiante=estudiante4.id_estudiante, id_logromateria=lm_primera.id_logromateria),
-        ])
-
-        db.commit()
-        print(" Seed completado con éxito.")
-        print(f"   → 3 carreras")
-        print(f"   → 4 categorías  (CBAS, CHUM, CHUL, ISCO)")
-        print(f"   → {len(MATERIAS_DATA)} materias de la malla Ing. Sistemas UTB")
-        print(f"   → {len(LOGROS_DATA)} logros en 7 grupos")
-        print(f"   → 4 estudiantes  (T000XXXXX, número > 65000)")
+        print("Seed completado exitosamente.")
+        print(f"   - 1 carrera: Ingeniería de Sistemas y Computación")
+        print(f"   - 8 categorías")
+        print(f"   - 55 materias (malla oficial UTB 201910)")
+        print(f"   - 38 logros en 7 grupos")
+        print(f"   - 5 estudiantes simulados con perfiles de avance distintos")
 
 
 if __name__ == "__main__":
