@@ -4,7 +4,6 @@ from app.core.security import create_token
 
 def login_user(db: Session, email: str, password: str):
 
-    # consulta usando SQLModel
     statement = select(Estudiantes).where(Estudiantes.correo == email)
     user = db.exec(statement).first()
 
