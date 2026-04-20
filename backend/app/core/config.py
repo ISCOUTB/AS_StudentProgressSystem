@@ -1,9 +1,11 @@
 from pydantic_settings import BaseSettings
+from pydantic import Field
+import os
 
 class Settings(BaseSettings):
-    DATABASE_URL: str = "postgresql://sps_user:sps_password@db:5432/sps_db"
+    DATABASE_URL: str = Field(default_factory=lambda: os.getenv("DATABASE_URL", "postgresql://localhost/sps_db"))
     APP_NAME: str = "Student Progress System"
-    DEBUG: bool = True
+    DEBUG: bool = False
 
     class Config:
         env_file = ".env"
