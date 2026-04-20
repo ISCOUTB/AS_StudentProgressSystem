@@ -38,6 +38,10 @@ jobs:
           pytest tests/repositories --cov=app --cov-report=xml:coverage.xml --cov-report=term-missing
         continue-on-error: true
 
+      - name: Fix coverage paths
+        run: |
+          sed -i 's|/home/runner/work/AS_StudentProgressSystem/AS_StudentProgressSystem/backend/||g' backend/coverage.xml
+
       - name: Verify coverage file exists
         run: ls -la backend/coverage.xml
 
