@@ -32,6 +32,7 @@ jobs:
         env:
           ENVIRONMENT: test
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          SECRET_KEY: ${{ secrets.SECRET_KEY }}
         run: |
           export PYTHONPATH=.
           cd backend
