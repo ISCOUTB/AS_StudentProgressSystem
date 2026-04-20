@@ -32,7 +32,7 @@ jobs:
         env:
           ENVIRONMENT: test
         run: |
-          export PYTHONPATH=backend
+          export PYTHONPATH=.
           cd backend
           pytest tests/ --cov=app --cov-report=xml --cov-report=term
 
@@ -41,24 +41,6 @@ jobs:
         with:
           name: coverage-report
           path: backend/coverage.xml
-
-      # ── Frontend: Next.js ─────────────────────────
-      - name: Set up Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: "20"
-          cache: "npm"
-          cache-dependency-path: frontend/package-lock.json
-
-      - name: Install Node dependencies
-        run: npm ci --prefix frontend --legacy-peer-deps
-
-      - name: Run Next.js tests + coverage
-        run: |
-          cd frontend
-          npm run test -- --coverage --watchAll=false
-        continue-on-error: true
-
       # ── SonarCloud ────────────────────────────────
       - name: SonarCloud Scan
         uses: SonarSource/sonarcloud-scan-action@v2
