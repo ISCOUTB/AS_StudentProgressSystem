@@ -422,11 +422,11 @@ def seed():
         }
 
         estudiantes_data = [
-            ("Ana",     "García",    "T00065001", "ana.garcia@utb.edu.co",      "avanzado"),
-            ("Carlos",  "Martínez",  "T00065002", "carlos.martinez@utb.edu.co", "intermedio"),
-            ("Laura",   "Rodríguez", "T00065003", "laura.rodriguez@utb.edu.co", "senior"),
-            ("Miguel",  "López",     "T00065004", "miguel.lopez@utb.edu.co",    "nuevo"),
-            ("Valeria", "Torres",    "T00065005", "valeria.torres@utb.edu.co",  "casi_graduado"),
+            ("Ana",     "García",    "T00065001", "anagarcia@utb.edu.co",      "avanzado"),
+            ("Carlos",  "Martínez",  "T00065002", "carlosmartinez@utb.edu.co", "intermedio"),
+            ("Laura",   "Rodríguez", "T00065003", "laurarodriguez@utb.edu.co", "senior"),
+            ("Miguel",  "López",     "T00065004", "miguellopez@utb.edu.co",    "nuevo"),
+            ("Valeria", "Torres",    "T00065005", "valeriatorres@utb.edu.co",  "casi_graduado"),
         ]
 
         for nombre, apellido, codigo, correo, perfil in estudiantes_data:
@@ -481,7 +481,7 @@ def seed():
             # Asignar logros obtenidos
             asignar_logros(session, est, materias_aprobadas_obj, logro_map, logros_materias_map)
 
-        print("✅ Seed completado exitosamente.")
+        print("Seed completado exitosamente.")
         print("   - 1 carrera | 8 categorías | 55 materias | 38 logros | 5 estudiantes")
         print()
         print("   Logros asignados por perfil:")
