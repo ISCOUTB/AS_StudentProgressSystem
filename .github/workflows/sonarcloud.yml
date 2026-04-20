@@ -28,11 +28,11 @@ jobs:
       - name: Run Python tests + coverage
         run: |
           cd backend
-          python -m pytest tests/ --cov=app --cov-report=xml:coverage.xml --cov-omit=venv/*
+          python -m pytest tests/ --cov=app --cov-report=xml:coverage.xml --cov-omit='venv/*'
         continue-on-error: true
 
       # ── SonarCloud ────────────────────────────────
       - name: SonarCloud Scan
-        uses: SonarSource/sonarqube-scan-action@v5
+        uses: SonarSource/sonarqube-scan-action@v6
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
