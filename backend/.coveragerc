@@ -1,13 +1,14 @@
 [run]
-source = backend/tests/repositories
+source = app
 omit =
-    backend/app/*
-    backend/core/*
-    backend/logic/models/*
-    backend/logic/schemas/*
-    backend/tests/conftest.py
-    backend/tests/utils/*
-    backend/tests/api/*
+    app/api/*
+    app/core/*
+    app/main.py
+    app/deps.py
+    app/routes/*
+    app/schemas/auth.py
+    app/schemas/malla.py
+    app/schemas/progreso.py
 
 [report]
 exclude_lines =
