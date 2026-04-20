@@ -35,6 +35,17 @@ def test_get_by_estudiante_vacio(session, estudiante):
     result = repo.get_by_estudiante(session, estudiante.id_estudiante)
     assert result == []
 
+def test_get_all(session, estudiante, carrera):
+    data = EstudianteCarreraCreate(
+        id_estudiante=estudiante.id_estudiante,
+        id_carrera=carrera.id_carrera,
+        semestre="Nivel I",
+        fecha_admision=date(2024, 1, 15)
+    )
+    repo.create(session, data)
+    result = repo.get_all(session)
+    assert len(result) == 1
+    assert result[0].id_estudiante == estudiante.id_estudiante
 
 def test_get_by_ids_existente(session, estudiante, carrera):
     data = EstudianteCarreraCreate(
