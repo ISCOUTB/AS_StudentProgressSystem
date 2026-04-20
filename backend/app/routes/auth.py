@@ -7,14 +7,19 @@ from sqlmodel import Session
 
 router = APIRouter()
 
-@router.post("/login", response_model=TokenResponse)
+@router.post(
+    "/login",
+    response_model=TokenResponse,
+    responses={
+        401: {"description": "Credenciales incorrectas"},
+    }
+)
 def login(data: LoginRequest, session: Annotated[Session, Depends(get_session)]):
-    
     token = login_user(session, data.email, data.password)
-    
+
     if not token:
         raise HTTPException(status_code=401, detail="Credenciales incorrectas")
-    
+
     return {
         "access_token": token,
         "token_type": "bearer"
