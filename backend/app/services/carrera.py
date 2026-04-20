@@ -4,13 +4,15 @@ from app.repositories import carrera as repo
 from app.schemas.carrera import CarreraCreate, CarreraUpdate, CarreraRead
 from fastapi import HTTPException
 
+CARRERA_NO_ENCONTRADA = "Carrera no encontrada"
+
 def get_all(session: Session) -> list[CarreraRead]:
     return repo.get_all(session)
 
 def get_by_id(session: Session, id_carrera: UUID) -> CarreraRead:
     carrera = repo.get_by_id(session, id_carrera)
     if not carrera:
-        raise HTTPException(status_code=404, detail="Carrera no encontrada")
+        raise HTTPException(status_code=404, detail=CARRERA_NO_ENCONTRADA)
     return carrera
 
 def create(session: Session, data: CarreraCreate) -> CarreraRead:
@@ -22,11 +24,11 @@ def create(session: Session, data: CarreraCreate) -> CarreraRead:
 def update(session: Session, id_carrera: UUID, data: CarreraUpdate) -> CarreraRead:
     carrera = repo.update(session, id_carrera, data)
     if not carrera:
-        raise HTTPException(status_code=404, detail="Carrera no encontrada")
+        raise HTTPException(status_code=404, detail=CARRERA_NO_ENCONTRADA)
     return carrera
 
 def delete(session: Session, id_carrera: UUID) -> dict:
     deleted = repo.delete(session, id_carrera)
     if not deleted:
-        raise HTTPException(status_code=404, detail="Carrera no encontrada")
+        raise HTTPException(status_code=404, detail=CARRERA_NO_ENCONTRADA)
     return {"message": "Carrera eliminada correctamente"}

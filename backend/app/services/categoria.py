@@ -4,13 +4,15 @@ from app.repositories import categoria as repo
 from app.schemas.categoria import CategoriaCreate, CategoriaUpdate, CategoriaRead
 from fastapi import HTTPException
 
+CATEGORIA_NO_ENCONTRADA = "Categoría no encontrada"
+
 def get_all(session: Session) -> list[CategoriaRead]:
     return repo.get_all(session)
 
 def get_by_id(session: Session, id_categoria: UUID) -> CategoriaRead:
     categoria = repo.get_by_id(session, id_categoria)
     if not categoria:
-        raise HTTPException(status_code=404, detail="Categoría no encontrada")
+        raise HTTPException(status_code=404, detail=CATEGORIA_NO_ENCONTRADA)
     return categoria
 
 def create(session: Session, data: CategoriaCreate) -> CategoriaRead:
@@ -22,11 +24,11 @@ def create(session: Session, data: CategoriaCreate) -> CategoriaRead:
 def update(session: Session, id_categoria: UUID, data: CategoriaUpdate) -> CategoriaRead:
     categoria = repo.update(session, id_categoria, data)
     if not categoria:
-        raise HTTPException(status_code=404, detail="Categoría no encontrada")
+        raise HTTPException(status_code=404, detail=CATEGORIA_NO_ENCONTRADA)
     return categoria
 
 def delete(session: Session, id_categoria: UUID) -> dict:
     deleted = repo.delete(session, id_categoria)
     if not deleted:
-        raise HTTPException(status_code=404, detail="Categoría no encontrada")
+        raise HTTPException(status_code=404, detail=CATEGORIA_NO_ENCONTRADA)
     return {"message": "Categoría eliminada correctamente"}
