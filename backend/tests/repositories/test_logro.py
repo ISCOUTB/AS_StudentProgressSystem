@@ -13,7 +13,7 @@ def make_data(**kwargs):
 def test_create_logro(session):
     result = repo.create(session, make_data())
     assert result.id_logro is not None
-    assert result.nombre_logro == "Materia aprobada"
+    assert result.nombre == "Materia aprobada"  # Changed from nombre_logro
     
 
 
@@ -39,7 +39,7 @@ def test_get_by_id_inexistente(session):
 def test_update_logro(session):
     created = repo.create(session, make_data())
     updated = repo.update(session, created.id_logro, LogroUpdate(nombre="Nuevo logro"))
-    assert updated.nombre_logro == "Nuevo logro"
+    assert updated.nombre == "Nuevo logro"  # Changed from nombre_logro
     
 
 
