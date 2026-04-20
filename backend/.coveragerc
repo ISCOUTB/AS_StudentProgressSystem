@@ -1,0 +1,20 @@
+[run]
+source = backend/tests/repositories
+omit =
+    backend/app/*
+    backend/core/*
+    backend/logic/models/*
+    backend/logic/schemas/*
+    backend/tests/conftest.py
+    backend/tests/utils/*
+    backend/tests/api/*
+
+[report]
+exclude_lines =
+    pragma: no cover
+    def __repr__
+    raise AssertionError
+    raise NotImplementedError
+    if __name__ == .__main__.:
+    if TYPE_CHECKING:
+    @abstractmethod
