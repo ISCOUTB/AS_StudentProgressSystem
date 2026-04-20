@@ -61,15 +61,14 @@ def materia(session, categoria):
     mat = Materias(
         id_materia=uuid.uuid4(),
         nombre="Fundamentos de Programación",
-        codigo="C02A",
         creditos=3,
         id_categoria=categoria.id_categoria
+        # Removed: codigo="C02A"  <- This field doesn't exist
     )
     session.add(mat)
     session.commit()
     session.refresh(mat)
     return mat
-
 
 @pytest.fixture
 def estudiante(session):
@@ -92,7 +91,7 @@ def estudiante(session):
 def logro(session):
     l = Logros(
         id_logro=uuid.uuid4(),
-        nombre_logro="Materia aprobada",
+        nombre="Materia aprobada",  # Changed from nombre_logro
         descripcion="Aprobaste tu primera materia"
     )
     session.add(l)
