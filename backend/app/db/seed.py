@@ -18,25 +18,145 @@ from app.enums.escuela import Escuelas
 import hashlib
 
 engine = create_engine(settings.DATABASE_URL, echo=False)
+# ── Constantes de hitos ───────────────────────────────────────────────────────
+HITO_FUNDAMENTOS = "Fundamentos solidos"
+HITO_ESTRUCTURAS = "Estructuras dominadas"
+HITO_BASE_DATOS = "Base de datos lista"
+HITO_ARQUITECTURA = "Arquitecto de software"
+HITO_PROYECTO_I = "Proyecto iniciado"
+HITO_PROYECTO_II = "Proyecto finalizado"
+HITO_PRACTICA = "Practica completada"
+
+# ── Constantes de semestres ───────────────────────────────────────────────────
+P_2021 = "PRIMER PERIODO 2021 PREGRADO"
+S_2021 = "SEGUNDO PERIODO 2021 PREGRADO"
+P_2022 = "PRIMER PERIODO 2022 PREGRADO"
+S_2022 = "SEGUNDO PERIODO 2022 PREGRADO"
+P_2023 = "PRIMER PERIODO 2023 PREGRADO"
+S_2023 = "SEGUNDO PERIODO 2023 PREGRADO"
+P_2024 = "PRIMER PERIODO 2024 PREGRADO"
+S_2024 = "SEGUNDO PERIODO 2024 PREGRADO"
+P_2026 = "PRIMER PERIODO 2026 PREGRADO"
 
 
 def hash_password(password: str) -> str:
     return hashlib.sha256(password.encode()).hexdigest()
 
 
-def asignar_logros(session, est, materias_aprobadas, logro_map, logros_materias_map):
-    """Evalúa y asigna los logros obtenidos por el estudiante según su progreso real."""
-
-    aprobadas_ids = {em.id_materia for em in materias_aprobadas}
-    notas = {em.id_materia: em.nota for em in materias_aprobadas}
-    total_aprobadas = len(materias_aprobadas)
-
-    creditos_aprobados = 0
+def _calcular_creditos(session, materias_aprobadas):
+    total = 0
     for em in materias_aprobadas:
         mat = session.get(Materias, em.id_materia)
         if mat:
-            creditos_aprobados += mat.creditos
+            total += mat.creditos
+    return total
 
+
+def _asignar_logros_por_materia(obtener_logro, materias_aprobadas, notas, session):
+    total = len(materias_aprobadas)
+    if total >= 1:
+        obtener_logro("Materia aprobada")
+        obtener_logro("Primer paso")
+    if any(n >= 4.0 for n in notas.values()):
+        obtener_logro("Buen desempeño")
+    if any(n >= 4.5 for n in notas.values()):
+        obtener_logro("Excelencia")
+    for em in materias_aprobadas:
+        mat = session.get(Materias, em.id_materia)
+        if mat and mat.codigo in {"C02A", "C03A"}:
+            obtener_logro("El codigo empieza")
+            break
+    for em in materias_aprobadas:
+        mat = session.get(Materias, em.id_materia)
+        if mat:
+            cat = session.get(Categorias, mat.id_categoria)
+            if cat and cat.codigo == "CBAS":
+                obtener_logro("Base cientifica")
+                break
+
+
+def _asignar_logros_por_categoria(obtener_logro, materias_aprobadas, session):
+    def count_cat(code):
+        return sum(
+            1 for em in materias_aprobadas
+            if (m := session.get(Materias, em.id_materia)) and
+               (c := session.get(Categorias, m.id_categoria)) and c.codigo == code
+        )
+    if count_cat("CBAS") >= 11:
+        obtener_logro("Cientifico formado")
+    if count_cat("CHUM") >= 7:
+        obtener_logro("Humanista digital")
+    if count_cat("CHUL") >= 5:
+        obtener_logro("Poliglota")
+    if count_cat("ISCO") >= 31:
+        obtener_logro("Ingeniero de sistemas")
+    electivas = sum(
+        1 for em in materias_aprobadas
+        if (m := session.get(Materias, em.id_materia)) and
+           m.codigo in {"EC1A", "EC2A", "EC3A", "EC4A"}
+    )
+    if electivas >= 4:
+        obtener_logro("Libre eleccion")
+
+
+def _asignar_logros_por_progreso(obtener_logro, total_aprobadas, creditos_aprobados):
+    if creditos_aprobados >= 40:
+        obtener_logro("Arrancando fuerte")
+    if creditos_aprobados >= 81:
+        obtener_logro("Mitad del camino")
+    if creditos_aprobados >= 121:
+        obtener_logro("En la recta final")
+    if creditos_aprobados >= 162:
+        obtener_logro("Programa completo")
+    if total_aprobadas >= 10:
+        obtener_logro("Decima superada")
+    if total_aprobadas >= 20:
+        obtener_logro("Veinte arriba")
+    if total_aprobadas >= 30:
+        obtener_logro("Treinta y contando")
+    if total_aprobadas >= 40:
+        obtener_logro("Cuarenta logradas")
+    if total_aprobadas >= 55:
+        obtener_logro("Graduando")
+
+
+def _asignar_logros_por_rendimiento(obtener_logro, notas, promedio):
+    con_distincion = sum(1 for n in notas.values() if n >= 4.0)
+    if con_distincion >= 5:
+        obtener_logro("Cinco con distincion")
+    if con_distincion >= 10:
+        obtener_logro("Diez con distincion")
+    if con_distincion >= 20:
+        obtener_logro("Veinte con distincion")
+    if promedio >= 4.0:
+        obtener_logro("Promedio alto")
+    if promedio >= 4.5:
+        obtener_logro("Matricula de honor")
+
+
+def _asignar_logros_por_hitos(obtener_logro, aprobadas_ids, session):
+    hitos_check = {
+        HITO_FUNDAMENTOS: "C02A",
+        HITO_ESTRUCTURAS:  "C05A",
+        HITO_BASE_DATOS:   "A01A",
+        HITO_ARQUITECTURA: "A04A",
+        HITO_PROYECTO_I:   "P01A",
+        HITO_PROYECTO_II:  "P02A",
+        HITO_PRACTICA:     "P03A",
+    }
+    for nombre_logro, codigo_mat in hitos_check.items():
+        mat_hito = session.exec(
+            select(Materias).where(Materias.codigo == codigo_mat)
+        ).first()
+        if mat_hito and mat_hito.id_materia in aprobadas_ids:
+            obtener_logro(nombre_logro)
+
+
+def asignar_logros(session, est, materias_aprobadas, logro_map, logros_materias_map):
+    aprobadas_ids = {em.id_materia for em in materias_aprobadas}
+    notas = {em.id_materia: em.nota for em in materias_aprobadas}
+    total_aprobadas = len(materias_aprobadas)
+    creditos_aprobados = _calcular_creditos(session, materias_aprobadas)
     promedio = (sum(notas.values()) / total_aprobadas) if total_aprobadas > 0 else 0
 
     def obtener_logro(nombre):
@@ -58,113 +178,17 @@ def asignar_logros(session, est, materias_aprobadas, logro_map, logros_materias_
                 status=StatusLogro.obtenido
             ))
 
-    # ── Grupo 1 — Por materia ─────────────────────────────────────────────────
-    if total_aprobadas >= 1:
-        obtener_logro("Materia aprobada")
-        obtener_logro("Primer paso")
+    _asignar_logros_por_materia(obtener_logro, materias_aprobadas, notas, session)
+    _asignar_logros_por_categoria(obtener_logro, materias_aprobadas, session)
+    _asignar_logros_por_progreso(obtener_logro, total_aprobadas, creditos_aprobados)
+    _asignar_logros_por_rendimiento(obtener_logro, notas, promedio)
 
-    if any(n >= 4.0 for n in notas.values()):
-        obtener_logro("Buen desempeño")
-
-    if any(n >= 4.5 for n in notas.values()):
-        obtener_logro("Excelencia")
-
-    for em in materias_aprobadas:
-        mat = session.get(Materias, em.id_materia)
-        if mat and mat.codigo in {"C02A", "C03A"}:
-            obtener_logro("El código empieza")
-            break
-
-    for em in materias_aprobadas:
-        mat = session.get(Materias, em.id_materia)
-        if mat:
-            cat = session.get(Categorias, mat.id_categoria)
-            if cat and cat.codigo == "CBAS":
-                obtener_logro("Base científica")
-                break
-
-    # ── Grupo 2 — Por categoría ───────────────────────────────────────────────
-    def count_cat(code):
-        return sum(
-            1 for em in materias_aprobadas
-            if (m := session.get(Materias, em.id_materia)) and
-               (c := session.get(Categorias, m.id_categoria)) and c.codigo == code
-        )
-
-    if count_cat("CBAS") >= 11:
-        obtener_logro("Científico formado")
-    if count_cat("CHUM") >= 7:
-        obtener_logro("Humanista digital")
-    if count_cat("CHUL") >= 5:
-        obtener_logro("Políglota")
-    if count_cat("ISCO") >= 31:
-        obtener_logro("Ingeniero de sistemas")
-
-    electivas = sum(
-        1 for em in materias_aprobadas
-        if (m := session.get(Materias, em.id_materia)) and
-           m.codigo in {"EC1A", "EC2A", "EC3A", "EC4A"}
-    )
-    if electivas >= 4:
-        obtener_logro("Libre elección")
-
-    # ── Grupo 3 — Por progreso académico ─────────────────────────────────────
-    if creditos_aprobados >= 40:
-        obtener_logro("Arrancando fuerte")
-    if creditos_aprobados >= 81:
-        obtener_logro("Mitad del camino")
-    if creditos_aprobados >= 121:
-        obtener_logro("En la recta final")
-    if creditos_aprobados >= 162:
-        obtener_logro("Programa completo")
-    if total_aprobadas >= 10:
-        obtener_logro("Décima superada")
-    if total_aprobadas >= 20:
-        obtener_logro("Veinte arriba")
-    if total_aprobadas >= 30:
-        obtener_logro("Treinta y contando")
-    if total_aprobadas >= 40:
-        obtener_logro("Cuarenta logradas")
-    if total_aprobadas >= 55:
-        obtener_logro("Graduando")
-
-    # ── Grupo 4 — Rendimiento académico ──────────────────────────────────────
-    con_distincion = sum(1 for n in notas.values() if n >= 4.0)
-    if con_distincion >= 5:
-        obtener_logro("Cinco con distinción")
-    if con_distincion >= 10:
-        obtener_logro("Diez con distinción")
-    if con_distincion >= 20:
-        obtener_logro("Veinte con distinción")
-    if promedio >= 4.0:
-        obtener_logro("Promedio alto")
-    if promedio >= 4.5:
-        obtener_logro("Matrícula de honor")
-
-    # ── Grupo 5 — Disciplina ──────────────────────────────────────────────────
     if total_aprobadas > 0:
         obtener_logro("Sin tropiezos")
         obtener_logro("Progreso perfecto")
 
-    # ── Grupo 6 — Hitos de la malla ──────────────────────────────────────────
-    hitos_check = {
-        "Fundamentos sólidos":    "C02A",
-        "Estructuras dominadas":  "C05A",
-        "Base de datos lista":    "A01A",
-        "Arquitecto de software": "A04A",
-        "Proyecto iniciado":      "P01A",
-        "Proyecto finalizado":    "P02A",
-        "Práctica completada":    "P03A",
-    }
-    for nombre_logro, codigo_mat in hitos_check.items():
-        mat_hito = session.exec(
-            select(Materias).where(Materias.codigo == codigo_mat)
-        ).first()
-        if mat_hito and mat_hito.id_materia in aprobadas_ids:
-            obtener_logro(nombre_logro)
-
+    _asignar_logros_por_hitos(obtener_logro, aprobadas_ids, session)
     session.commit()
-
 
 def seed():
     SQLModel.metadata.create_all(engine)
@@ -332,15 +356,14 @@ def seed():
         logro_map = {l.nombre_logro: l for l in logros}
 
         hitos = {
-            "Fundamentos sólidos":    m_c02a,
-            "Estructuras dominadas":  m_c05a,
-            "Base de datos lista":    m_a01a,
-            "Arquitecto de software": m_a04a,
-            "Proyecto iniciado":      m_p01a,
-            "Proyecto finalizado":    m_p02a,
-            "Práctica completada":    m_p03a,
-        }
-
+                HITO_FUNDAMENTOS: m_c02a,
+                HITO_ESTRUCTURAS:  m_c05a,
+                HITO_BASE_DATOS:   m_a01a,
+                HITO_ARQUITECTURA: m_a04a,
+                HITO_PROYECTO_I:   m_p01a,
+                HITO_PROYECTO_II:  m_p02a,
+                HITO_PRACTICA:     m_p03a,
+            }
         logros_materias_list = []
         for l in logros:
             lm = LogroMaterias(
@@ -371,7 +394,7 @@ def seed():
                 "en_curso": nivel_1,
                 "semestre": "Nivel I",
                 "fecha": date(2026, 1, 15),
-                "hist": ["PRIMER PERIODO 2026 PREGRADO"],
+                "hist": [P_2026],
                 "notas": [],
             },
             "intermedio": {
@@ -379,7 +402,7 @@ def seed():
                 "en_curso": nivel_3,
                 "semestre": "Nivel III",
                 "fecha": date(2024, 1, 15),
-                "hist": ["PRIMER PERIODO 2024 PREGRADO", "SEGUNDO PERIODO 2024 PREGRADO"],
+                "hist": [P_2024, S_2024],
                 "notas": [3.5, 4.0, 3.8, 3.2, 4.5, 4.2, 3.9, 3.7, 4.1, 3.6, 4.3, 3.5],
             },
             "avanzado": {
@@ -387,8 +410,7 @@ def seed():
                 "en_curso": nivel_5,
                 "semestre": "Nivel V",
                 "fecha": date(2023, 1, 15),
-                "hist": ["PRIMER PERIODO 2023 PREGRADO", "SEGUNDO PERIODO 2023 PREGRADO",
-                         "PRIMER PERIODO 2024 PREGRADO", "SEGUNDO PERIODO 2024 PREGRADO"],
+                "hist": [P_2023, S_2023, P_2024, S_2024],
                 "notas": [4.0, 4.2, 3.8, 4.5, 4.1, 3.9, 4.3, 4.0, 3.7, 4.2, 4.4, 3.8,
                           4.1, 3.9, 4.0, 4.3, 3.8],
             },
@@ -397,9 +419,7 @@ def seed():
                 "en_curso": nivel_7,
                 "semestre": "Nivel VII",
                 "fecha": date(2022, 1, 15),
-                "hist": ["PRIMER PERIODO 2022 PREGRADO", "SEGUNDO PERIODO 2022 PREGRADO",
-                         "PRIMER PERIODO 2023 PREGRADO", "SEGUNDO PERIODO 2023 PREGRADO",
-                         "PRIMER PERIODO 2024 PREGRADO", "SEGUNDO PERIODO 2024 PREGRADO"],
+                "hist": [P_2022, S_2022, P_2023, S_2023, P_2024, S_2024],
                 "notas": [4.2, 4.0, 3.9, 4.5, 4.3, 4.1, 3.8, 4.2, 4.0, 4.4, 3.9, 4.1,
                           4.3, 4.0, 3.8, 4.2, 4.5, 4.1, 3.9, 4.0, 4.2, 4.3, 3.8, 4.1,
                           4.0, 4.2, 3.9, 4.3],
@@ -410,10 +430,7 @@ def seed():
                 "en_curso": nivel_9,
                 "semestre": "Nivel IX",
                 "fecha": date(2021, 1, 15),
-                "hist": ["PRIMER PERIODO 2021 PREGRADO", "SEGUNDO PERIODO 2021 PREGRADO",
-                         "PRIMER PERIODO 2022 PREGRADO", "SEGUNDO PERIODO 2022 PREGRADO",
-                         "PRIMER PERIODO 2023 PREGRADO", "SEGUNDO PERIODO 2023 PREGRADO",
-                         "PRIMER PERIODO 2024 PREGRADO", "SEGUNDO PERIODO 2024 PREGRADO"],
+                "hist": [P_2021, S_2021, P_2022, S_2022, P_2023, S_2023, P_2024, S_2024],
                 "notas": [4.5, 4.3, 4.0, 4.8, 4.2, 4.5, 4.1, 4.3, 4.6, 4.2, 4.4, 4.0,
                           4.3, 4.5, 4.2, 4.6, 4.1, 4.3, 4.5, 4.0, 4.2, 4.4, 4.3, 4.5,
                           4.1, 4.2, 4.5, 4.3, 4.6, 4.2, 4.4, 4.5, 4.1, 4.3, 4.2, 4.5,
@@ -473,7 +490,7 @@ def seed():
                     id_materia=mat.id_materia,
                     status=StatusMaterias.encurso,
                     nota=0.0,
-                    semestre="PRIMER PERIODO 2026 PREGRADO"
+                    semestre=P_2026
                 ))
 
             session.commit()
