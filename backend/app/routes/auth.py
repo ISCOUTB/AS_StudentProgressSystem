@@ -2,7 +2,7 @@ from typing import Annotated
 from fastapi import APIRouter, HTTPException, Depends
 from app.schemas.auth import LoginRequest, TokenResponse
 from app.services.auth import login_user
-from app.deps import get_session
+from app.db.db import get_session
 from sqlmodel import Session
 
 router = APIRouter()

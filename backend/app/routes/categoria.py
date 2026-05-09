@@ -2,7 +2,7 @@ from typing import Annotated
 from fastapi import APIRouter, Depends
 from sqlmodel import Session
 from uuid import UUID
-from app.deps import get_session
+from app.db.db import get_session
 from app.schemas.categoria import CategoriaCreate, CategoriaRead, CategoriaUpdate
 from app.services import categoria as service
 

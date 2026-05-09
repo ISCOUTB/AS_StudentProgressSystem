@@ -1,12 +1,18 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException
 from sqlmodel import Session
 from typing import Annotated
 from uuid import UUID
 from app.db.db import get_session
 from app.schemas.estudiante import EstudianteCreate, EstudianteRead, EstudianteUpdate
 from app.services import estudiante as service
+from app.models.estudiante import Estudiantes
+from app.deps import get_current_user
 
 router = APIRouter(prefix="/estudiantes", tags=["Estudiantes"])
+
+@router.get("/me", response_model=EstudianteRead)
+def get_me(current_user: Estudiantes = Depends(get_current_user)):
+    return current_user
 
 @router.get("/", response_model=list[EstudianteRead])
 def get_all(session: Annotated[Session, Depends(get_session)]):

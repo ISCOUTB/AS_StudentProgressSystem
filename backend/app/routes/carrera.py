@@ -2,7 +2,7 @@ from typing import Annotated
 from fastapi import APIRouter, Depends
 from sqlmodel import Session
 from uuid import UUID
-from app.deps import get_session
+from app.db.db import get_session
 from app.schemas.carrera import CarreraCreate, CarreraRead, CarreraUpdate
 from app.services import carrera as service
 
