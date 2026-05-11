@@ -1,11 +1,14 @@
 from typing import Annotated
 from fastapi import APIRouter, HTTPException, Depends
-from app.schemas.auth import LoginRequest, TokenResponse
+from fastapi.security import OAuth2PasswordRequestForm
+from sqlmodel import Session
+from app.schemas.auth import TokenResponse
 from app.services.auth import login_user
 from app.db.db import get_session
-from sqlmodel import Session
+
 
 router = APIRouter()
+
 
 @router.post(
     "/login",
@@ -14,11 +17,22 @@ router = APIRouter()
         401: {"description": "Credenciales incorrectas"},
     }
 )
-def login(data: LoginRequest, session: Annotated[Session, Depends(get_session)]):
-    token = login_user(session, data.email, data.password)
+def login(
+    data: Annotated[OAuth2PasswordRequestForm, Depends()],
+    session: Annotated[Session, Depends(get_session)]
+):
+
+    token = login_user(
+        session,
+        data.username,
+        data.password
+    )
 
     if not token:
-        raise HTTPException(status_code=401, detail="Credenciales incorrectas")
+        raise HTTPException(
+            status_code=401,
+            detail="Credenciales incorrectas"
+        )
 
     return {
         "access_token": token,

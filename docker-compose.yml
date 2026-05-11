@@ -18,6 +18,7 @@ services:
     container_name: sps_backend
     environment:
       DATABASE_URL: postgresql://sps_user:sps_password@db:5432/sps_db
+      ENABLE_DEMO_SEED: "true"
     ports:
       - "8000:8000"
     depends_on:

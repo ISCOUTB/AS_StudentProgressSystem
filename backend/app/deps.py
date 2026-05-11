@@ -4,6 +4,7 @@ from sqlmodel import Session
 from app.db.db import get_session
 from app.models.estudiante import Estudiantes
 from app.core.security import verify_token
+from typing import Annotated
 
 bearer = HTTPBearer()
 
@@ -22,3 +23,5 @@ def get_current_user(
     if not user:
         raise HTTPException(status_code=404, detail="Estudiante no encontrado")
     return user
+
+CurrentUser = Annotated[Estudiantes, Depends(get_current_user)]

@@ -9,3 +9,4 @@ pytest-cov
 httpx
 slowapi
 PyJWT
+python-multipart

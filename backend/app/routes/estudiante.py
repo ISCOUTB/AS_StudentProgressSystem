@@ -6,13 +6,13 @@ from app.db.db import get_session
 from app.schemas.estudiante import EstudianteCreate, EstudianteRead, EstudianteUpdate
 from app.services import estudiante as service
 from app.models.estudiante import Estudiantes
-from app.deps import get_current_user
+from app.deps import CurrentUser
 
 router = APIRouter(prefix="/estudiantes", tags=["Estudiantes"])
 
 @router.get("/me", response_model=EstudianteRead)
-def get_me(current_user: Estudiantes = Depends(get_current_user)):
-    return current_user
+def get_me(current_user: CurrentUser  ):
+    return get_by_id(current_user.id_estudiante)
 
 @router.get("/", response_model=list[EstudianteRead])
 def get_all(session: Annotated[Session, Depends(get_session)]):
