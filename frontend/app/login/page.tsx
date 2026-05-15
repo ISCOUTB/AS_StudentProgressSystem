@@ -1,374 +1,166 @@
-"use client";
+"use client"
 
-import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
-import { Mail, Lock, ArrowRight, Eye, EyeOff } from "lucide-react";
-import { isTokenExpired } from "@/lib/api";
-
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
-
-function Toast({ message, type, onClose }: { message: string; type: "error" | "success"; onClose: () => void }) {
-  useEffect(() => {
-    const t = setTimeout(onClose, 3500);
-    return () => clearTimeout(t);
-  }, [onClose]);
-
-  return (
-    <div
-      className={`fixed top-6 right-6 z-50 flex items-center gap-3 px-5 py-4 rounded-2xl shadow-2xl text-sm font-medium transition-all duration-300 animate-slide-in ${
-        type === "error"
-          ? "bg-red-500/95 text-white"
-          : "bg-emerald-500/95 text-white"
-      }`}
-      style={{ backdropFilter: "blur(12px)" }}
-    >
-      <span className="text-lg">{type === "error" ? "✕" : "✓"}</span>
-      {message}
-      <button
-        onClick={onClose}
-        className="ml-2 opacity-70 hover:opacity-100 text-lg leading-none"
-      >
-        ×
-      </button>
-    </div>
-  );
-}
+import { useState } from "react"
+import { useRouter } from "next/navigation"
+import Image from "next/image"
+import Link from "next/link"
+import { Mail, Lock, Eye, EyeOff, ArrowRight } from "lucide-react"
 
 export default function LoginPage() {
-  const router = useRouter();
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [showPassword, setShowPassword] = useState(false);
-  const [remember, setRemember] = useState(false);
-  const [loading, setLoading] = useState(false);
-  const [toast, setToast] = useState<{ message: string; type: "error" | "success" } | null>(null);
-  const [errors, setErrors] = useState<{ email?: string; password?: string }>({});
-  const [emailFocused, setEmailFocused] = useState(false);
-  const [passwordFocused, setPasswordFocused] = useState(false);
+  const router = useRouter()
+  const [email, setEmail] = useState("")
+  const [password, setPassword] = useState("")
+  const [showPassword, setShowPassword] = useState(false)
+  const [rememberMe, setRememberMe] = useState(false)
 
-  useEffect(() => {
-    // Check if already logged in
-    const token = localStorage.getItem("sps_token");
-    if (token && !isTokenExpired(token)) {
-      router.replace("/dashboard");
-      return;
-    }
-
-    const saved = localStorage.getItem("sps_email");
-    if (saved) {
-      setEmail(saved);
-      setRemember(true);
-    }
-  }, [router]);
-
-  const validate = () => {
-    const errs: { email?: string; password?: string } = {};
-
-    if (!email) {
-      errs.email = "El correo es requerido";
-    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-      errs.email = "Ingresa un correo válido";
-    }
-
-    if (!password) {
-      errs.password = "La contraseña es requerida";
-    } else if (password.length < 6) {
-      errs.password = "Mínimo 6 caracteres";
-    }
-
-    return errs;
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-
-    const errs = validate();
-
-    if (Object.keys(errs).length > 0) {
-      setErrors(errs);
-      return;
-    }
-
-    setErrors({});
-    setLoading(true);
-
-    try {
-      const res = await fetch(`${API_URL}/login`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          email,
-          password,
-        }),
-      });
-
-      if (!res.ok) {
-        const data = await res.json();
-        throw new Error(data.detail || "Credenciales incorrectas");
-      }
-
-      const data = await res.json();
-
-      localStorage.setItem("sps_token", data.access_token);
-
-      if (remember) {
-        localStorage.setItem("sps_email", email);
-      } else {
-        localStorage.removeItem("sps_email");
-      }
-
-      setToast({
-        message: "Bienvenido al sistema",
-        type: "success",
-      });
-
-      setTimeout(() => {
-        router.push("/dashboard");
-      }, 1000);
-    } catch (err) {
-      setToast({
-        message: err instanceof Error ? err.message : "Error de conexión",
-        type: "error",
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault()
+    // For demo purposes, redirect to dashboard
+    router.push("/dashboard/logros")
+  }
 
   return (
-    <>
-      <style jsx global>{`
-        @keyframes slide-in {
-          from {
-            opacity: 0;
-            transform: translateX(24px);
-          }
-          to {
-            opacity: 1;
-            transform: translateX(0);
-          }
-        }
-
-        @keyframes card-in {
-          from {
-            opacity: 0;
-            transform: translateY(20px) scale(0.98);
-          }
-          to {
-            opacity: 1;
-            transform: translateY(0) scale(1);
-          }
-        }
-
-        .animate-slide-in {
-          animation: slide-in 0.3s ease both;
-        }
-
-        .animate-card-in {
-          animation: card-in 0.6s cubic-bezier(0.16, 1, 0.3, 1) both;
-        }
-      `}</style>
-
-      {toast && (
-        <Toast
-          message={toast.message}
-          type={toast.type}
-          onClose={() => setToast(null)}
-        />
-      )}
-
-      <div className="min-h-screen w-full flex items-center justify-center relative overflow-hidden">
-        {/* Background Image */}
-        <div 
-          className="absolute inset-0 bg-cover bg-center"
-          style={{ backgroundImage: "url('/login-bg.png')" }}
-        />
-
-        {/* Main Card */}
-        <div className="relative z-10 w-full max-w-[800px] mx-4 animate-card-in">
-          <div 
-            className="flex rounded-[24px] overflow-hidden shadow-2xl"
-            style={{ 
-              background: "rgba(255, 255, 255, 0.85)",
-              backdropFilter: "blur(20px)",
-              boxShadow: "0 25px 80px rgba(0, 0, 0, 0.12), 0 0 0 1px rgba(255, 255, 255, 0.5)"
-            }}
-          >
-            {/* Left Panel - Logo */}
-            <div className="hidden md:flex flex-col items-center justify-center w-[280px] p-10 border-r border-slate-200/60">
-              {/* UTB Logo */}
-              <div className="mb-4">
-                <img 
-                  src="/logo-utb.png" 
-                  alt="UTB - Universidad Tecnológica de Bolívar" 
-                  className="w-32 h-auto"
-                  style={{
-                    filter: "brightness(0) saturate(100%) invert(10%) sepia(30%) saturate(1500%) hue-rotate(180deg) brightness(95%) contrast(95%)"
-                  }}
+    <main className="relative min-h-screen w-full overflow-hidden">
+      {/* Background Image */}
+      <div 
+        className="absolute inset-0 bg-cover bg-center bg-no-repeat"
+        style={{ backgroundImage: "url('/images/fondo-login.png')" }}
+      />
+      
+      {/* Login Card Container */}
+      <div className="relative z-10 flex min-h-screen items-center justify-center px-4">
+        <div className="w-full max-w-4xl overflow-hidden rounded-2xl bg-white/80 shadow-2xl backdrop-blur-sm">
+          <div className="flex flex-col lg:flex-row">
+            {/* Left Side - Logo Section */}
+            <div className="flex flex-col items-center justify-center bg-gradient-to-br from-[#e0f7fa]/50 to-[#b2ebf2]/30 p-8 lg:w-2/5 lg:p-12">
+              <div className="flex flex-col items-center">
+                <Image
+                  src="/images/utb-logo-original.svg"
+                  alt="UTB Logo"
+                  width={200}
+                  height={100}
+                  className="mb-4 h-20 w-auto lg:h-24"
                 />
-              </div>
-              <p className="text-[#0B2131] text-center font-semibold text-sm leading-tight">
-                Universidad Tecnológica<br />de Bolívar
-              </p>
-            </div>
-
-            {/* Right Panel - Form */}
-            <div className="flex-1 p-8 md:p-10">
-              {/* Header */}
-              <div className="mb-6">
-                <h1 className="text-[#1e3a5f] text-2xl md:text-[28px] font-bold tracking-tight">
-                  Student Progress
-                </h1>
-                <p className="text-slate-500 text-sm mt-1">
-                  Sistema de Progreso Académico
+                <h2 className="text-center text-lg font-semibold text-[#1a1a2e]">
+                  Universidad Tecnológica
+                </h2>
+                <p className="text-center text-lg font-semibold text-[#1a1a2e]">
+                  de Bolívar
                 </p>
               </div>
-
-              {/* Section Title with Line */}
-              <div className="flex items-center gap-3 mb-6">
-                <span className="text-[#0ea5e9] text-sm font-semibold">Iniciar sesión</span>
-                <div className="flex-1 h-px bg-slate-200" />
-                <div className="w-2 h-2 rounded-full bg-[#0ea5e9]" />
+              
+              {/* Decorative dots */}
+              <div className="mt-12 grid grid-cols-2 gap-1">
+                {[...Array(8)].map((_, i) => (
+                  <div key={i} className="h-2 w-2 rounded-sm bg-[#1BB9EB]" />
+                ))}
               </div>
-
-              <form onSubmit={handleSubmit} className="space-y-5">
-                {/* Email Field */}
-                <div 
-                  className={`flex items-center gap-3 px-4 py-3 rounded-xl border-2 transition-all duration-200 bg-white ${
-                    emailFocused 
-                      ? "border-[#0ea5e9] shadow-[0_0_0_3px_rgba(14,165,233,0.1)]" 
-                      : errors.email 
-                        ? "border-red-300" 
-                        : "border-slate-200 hover:border-slate-300"
-                  }`}
-                >
-                  <Mail className="w-5 h-5 text-slate-400 flex-shrink-0" />
-                  <div className="flex-1 min-w-0">
-                    <label className="block text-xs text-slate-400 font-medium mb-0.5">
-                      Correo institucional
-                    </label>
-                    <input
-                      type="email"
-                      value={email}
-                      onChange={(e) => {
-                        setEmail(e.target.value);
-                        setErrors((p) => ({ ...p, email: undefined }));
-                      }}
-                      onFocus={() => setEmailFocused(true)}
-                      onBlur={() => setEmailFocused(false)}
-                      placeholder="usuario@utb.edu.co"
-                      autoComplete="email"
-                      className="w-full bg-transparent text-sm text-slate-700 placeholder-slate-300 outline-none"
-                    />
-                  </div>
+            </div>
+            
+            {/* Right Side - Form Section */}
+            <div className="flex flex-col justify-center p-8 lg:w-3/5 lg:p-12">
+              <div className="mx-auto w-full max-w-sm">
+                <h1 className="mb-2 text-3xl font-bold text-[#1a1a2e] lg:text-4xl">
+                  Student Progress
+                </h1>
+                <p className="mb-8 text-[#1a1a2e]/70">
+                  Sistema de Progreso Académico
+                </p>
+                
+                {/* Login Tab Indicator */}
+                <div className="mb-8 flex items-center gap-4">
+                  <span className="font-semibold text-[#1BB9EB]">Iniciar sesión</span>
+                  <div className="h-px flex-1 bg-[#1BB9EB]/30" />
+                  <div className="h-3 w-3 rounded-full bg-[#1BB9EB]" />
                 </div>
-                {errors.email && (
-                  <p className="text-xs text-red-500 flex items-center gap-1 -mt-3">
-                    <span>⚠</span> {errors.email}
-                  </p>
-                )}
-
-                {/* Password Field */}
-                <div 
-                  className={`flex items-center gap-3 px-4 py-3 rounded-xl border-2 transition-all duration-200 bg-white ${
-                    passwordFocused 
-                      ? "border-[#0ea5e9] shadow-[0_0_0_3px_rgba(14,165,233,0.1)]" 
-                      : errors.password 
-                        ? "border-red-300" 
-                        : "border-slate-200 hover:border-slate-300"
-                  }`}
-                >
-                  <Lock className="w-5 h-5 text-slate-400 flex-shrink-0" />
-                  <div className="flex-1 min-w-0">
-                    <label className="block text-xs text-slate-400 font-medium mb-0.5">
-                      Contraseña
-                    </label>
-                    <input
-                      type={showPassword ? "text" : "password"}
-                      value={password}
-                      onChange={(e) => {
-                        setPassword(e.target.value);
-                        setErrors((p) => ({ ...p, password: undefined }));
-                      }}
-                      onFocus={() => setPasswordFocused(true)}
-                      onBlur={() => setPasswordFocused(false)}
-                      placeholder="••••••••"
-                      autoComplete="current-password"
-                      className="w-full bg-transparent text-sm text-slate-700 placeholder-slate-300 outline-none"
-                    />
+                
+                <form onSubmit={handleSubmit} className="space-y-6">
+                  {/* Email Field */}
+                  <div className="relative rounded-xl border border-gray-200 bg-white p-4 transition-all focus-within:border-[#1BB9EB] focus-within:shadow-sm">
+                    <div className="flex items-start gap-4">
+                      <Mail className="mt-1 h-5 w-5 text-[#1a1a2e]/40" />
+                      <div className="flex-1">
+                        <label className="mb-1 block text-xs font-medium uppercase tracking-wider text-[#1a1a2e]/50">
+                          Correo institucional
+                        </label>
+                        <input
+                          type="email"
+                          value={email}
+                          onChange={(e) => setEmail(e.target.value)}
+                          placeholder="usuario@utb.edu.co"
+                          className="w-full bg-transparent text-[#1a1a2e] placeholder-[#1a1a2e]/40 outline-none"
+                        />
+                      </div>
+                    </div>
                   </div>
+                  
+                  {/* Password Field */}
+                  <div className="relative rounded-xl border border-gray-200 bg-white p-4 transition-all focus-within:border-[#1BB9EB] focus-within:shadow-sm">
+                    <div className="flex items-start gap-4">
+                      <Lock className="mt-1 h-5 w-5 text-[#1a1a2e]/40" />
+                      <div className="flex-1">
+                        <label className="mb-1 block text-xs font-medium uppercase tracking-wider text-[#1a1a2e]/50">
+                          Contraseña
+                        </label>
+                        <div className="flex items-center">
+                          <input
+                            type={showPassword ? "text" : "password"}
+                            value={password}
+                            onChange={(e) => setPassword(e.target.value)}
+                            placeholder="••••••••"
+                            className="w-full bg-transparent text-[#1a1a2e] placeholder-[#1a1a2e]/40 outline-none"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => setShowPassword(!showPassword)}
+                            className="text-[#1a1a2e]/40 hover:text-[#1a1a2e]"
+                          >
+                            {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  {/* Remember Me & Forgot Password */}
+                  <div className="flex items-center justify-between">
+                    <label className="flex cursor-pointer items-center gap-2">
+                      <input
+                        type="checkbox"
+                        checked={rememberMe}
+                        onChange={(e) => setRememberMe(e.target.checked)}
+                        className="h-4 w-4 rounded border-gray-300 text-[#1BB9EB] focus:ring-[#1BB9EB]"
+                      />
+                      <span className="text-sm text-[#1a1a2e]/70">Recordarme</span>
+                    </label>
+                    <Link 
+                      href="#" 
+                      className="text-sm font-medium text-[#1BB9EB] hover:underline"
+                    >
+                      ¿Olvidaste tu contraseña?
+                    </Link>
+                  </div>
+                  
+                  {/* Submit Button */}
                   <button
-                    type="button"
-                    onClick={() => setShowPassword(!showPassword)}
-                    className="p-1 text-slate-400 hover:text-[#0ea5e9] transition-colors flex-shrink-0"
-                    aria-label={showPassword ? "Ocultar contraseña" : "Mostrar contraseña"}
+                    type="submit"
+                    className="group flex w-full items-center justify-center gap-3 rounded-xl bg-gradient-to-r from-[#1BB9EB] to-[#0891b2] py-4 font-semibold text-white transition-all hover:from-[#0891b2] hover:to-[#1BB9EB] hover:shadow-lg"
                   >
-                    {showPassword ? (
-                      <EyeOff className="w-5 h-5" />
-                    ) : (
-                      <Eye className="w-5 h-5" />
-                    )}
+                    Iniciar sesión
+                    <ArrowRight className="h-5 w-5 transition-transform group-hover:translate-x-1" />
                   </button>
+                </form>
+                
+                {/* Footer */}
+                <div className="mt-8 text-center text-xs text-[#1a1a2e]/50">
+                  <p>�� 2025 Universidad Tecnológica de Bolívar</p>
+                  <p>Todos los derechos reservados.</p>
                 </div>
-                {errors.password && (
-                  <p className="text-xs text-red-500 flex items-center gap-1 -mt-3">
-                    <span>⚠</span> {errors.password}
-                  </p>
-                )}
-
-                {/* Remember & Forgot */}
-                <div className="flex items-center justify-between">
-                  <label className="flex items-center gap-2 cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={remember}
-                      onChange={(e) => setRemember(e.target.checked)}
-                      className="w-4 h-4 rounded border-slate-300 text-[#0ea5e9] focus:ring-[#0ea5e9] focus:ring-offset-0"
-                    />
-                    <span className="text-sm text-slate-600">Recordarme</span>
-                  </label>
-                  <a 
-                    href="/forgot-password" 
-                    className="text-sm text-[#0ea5e9] hover:text-[#0284c7] font-medium transition-colors"
-                  >
-                    ¿Olvidaste tu contraseña?
-                  </a>
-                </div>
-
-                {/* Submit Button */}
-                <button
-                  type="submit"
-                  disabled={loading}
-                  className="w-full py-3.5 rounded-xl text-white font-semibold text-sm transition-all duration-200 flex items-center justify-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed hover:shadow-lg hover:shadow-cyan-500/25 active:scale-[0.99]"
-                  style={{
-                    background: "linear-gradient(135deg, #0ea5e9 0%, #2563eb 100%)"
-                  }}
-                >
-                  {loading ? (
-                    <>
-                      <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                      Verificando...
-                    </>
-                  ) : (
-                    <>
-                      Iniciar sesión
-                      <ArrowRight className="w-4 h-4" />
-                    </>
-                  )}
-                </button>
-              </form>
-
-              {/* Footer */}
-              <p className="text-center text-xs text-slate-400 mt-8 leading-relaxed">
-                © 2025 Universidad Tecnológica de Bolívar<br />
-                Todos los derechos reservados.
-              </p>
+              </div>
             </div>
           </div>
         </div>
       </div>
-    </>
-  );
+    </main>
+  )
 }
