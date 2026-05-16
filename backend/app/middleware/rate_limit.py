@@ -5,9 +5,11 @@ from slowapi.middleware import SlowAPIMiddleware
 from fastapi import Request
 from fastapi.responses import JSONResponse
 
+# Limiter global: identifica clientes por IP y aplica límite de 100 req/min por defecto
 limiter = Limiter(key_func=get_remote_address, default_limits=["100/minute"])
 
 async def rate_limit_exceeded_handler(request: Request, exc: RateLimitExceeded):
+    """Responde con 429 cuando el cliente supera el límite de peticiones."""
     return JSONResponse(
         status_code=429,
         content={"detail": "Demasiadas solicitudes. Intenta de nuevo en un momento."}

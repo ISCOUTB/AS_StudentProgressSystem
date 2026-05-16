@@ -4,11 +4,13 @@ from app.models.estudiante_logro import EstudianteLogros
 from app.schemas.estudiante_logro import EstudianteLogroCreate, EstudianteLogroUpdate
 
 def get_by_estudiante(session: Session, id_estudiante: UUID) -> list[EstudianteLogros]:
+    """Retorna todos los logros registrados para un estudiante."""
     return session.exec(
         select(EstudianteLogros).where(EstudianteLogros.id_estudiante == id_estudiante)
     ).all()
 
 def get_by_ids(session: Session, id_estudiante: UUID, id_logromateria: UUID) -> EstudianteLogros | None:
+    """Busca el registro de un logro específico para un estudiante (usado para validar duplicados)."""
     return session.exec(
         select(EstudianteLogros)
         .where(EstudianteLogros.id_estudiante == id_estudiante)
@@ -16,6 +18,7 @@ def get_by_ids(session: Session, id_estudiante: UUID, id_logromateria: UUID) -> 
     ).first()
 
 def create(session: Session, data: EstudianteLogroCreate) -> EstudianteLogros:
+    """Crea el registro de un logro para un estudiante."""
     est_logro = EstudianteLogros(
         id_estudiante=data.id_estudiante,
         id_logromateria=data.id_logromateria,
@@ -27,6 +30,7 @@ def create(session: Session, data: EstudianteLogroCreate) -> EstudianteLogros:
     return est_logro
 
 def update(session: Session, id_estudiante: UUID, id_logromateria: UUID, data: EstudianteLogroUpdate) -> EstudianteLogros | None:
+    """Actualiza el status de un logro de un estudiante. Retorna None si no existe."""
     est_logro = session.exec(
         select(EstudianteLogros)
         .where(EstudianteLogros.id_estudiante == id_estudiante)
@@ -34,7 +38,7 @@ def update(session: Session, id_estudiante: UUID, id_logromateria: UUID, data: E
     ).first()
     if not est_logro:
         return None
-    update_data = data.model_dump(exclude_unset=True)
+    update_data = data.model_dump(exclude_unset=True)  # Ignora campos no enviados
     for key, value in update_data.items():
         setattr(est_logro, key, value)
     session.add(est_logro)
@@ -43,6 +47,7 @@ def update(session: Session, id_estudiante: UUID, id_logromateria: UUID, data: E
     return est_logro
 
 def delete(session: Session, id_estudiante: UUID, id_logromateria: UUID) -> bool:
+    """Elimina el registro de un logro de un estudiante. Retorna False si no existe."""
     est_logro = session.exec(
         select(EstudianteLogros)
         .where(EstudianteLogros.id_estudiante == id_estudiante)

@@ -1,3 +1,6 @@
+# Importaciones centralizadas de todos los modelos.
+# Este archivo debe importarse antes de llamar a SQLModel.metadata.create_all()
+# para garantizar que todas las tablas queden registradas en el metadata.
 from app.models.carrera_materia import CarreraMateria
 from app.models.carrera import Carreras
 from app.models.categorias import Categorias
