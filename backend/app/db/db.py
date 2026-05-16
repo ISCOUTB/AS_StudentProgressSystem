@@ -3,9 +3,10 @@ from app.core.config import settings
 from typing import Generator, Any
 import app.models  # importa todos los modelos para que SQLModel los registre
 
-
+# Primera instancia descartada; la configuración real está abajo
 engine = create_engine(settings.DATABASE_URL, echo=True)
 
+# Motor de base de datos con pool de conexiones configurado
 engine = create_engine(
     settings.DATABASE_URL,
     echo=False,           # True → imprime SQL generado (útil en desarrollo)

@@ -5,11 +5,13 @@ from app.schemas.estudiante_materia import EstudianteMateriaCreate, EstudianteMa
 from app.enums.status_materia import StatusMaterias
 
 def get_by_estudiante(session: Session, id_estudiante: UUID) -> list[EstudianteMateria]:
+    """Retorna todas las materias registradas para un estudiante."""
     return session.exec(
         select(EstudianteMateria).where(EstudianteMateria.id_estudiante == id_estudiante)
     ).all()
 
 def get_by_ids(session: Session, id_estudiante: UUID, id_materia: UUID) -> EstudianteMateria | None:
+    """Busca el registro de una materia específica para un estudiante (usado para validar duplicados)."""
     return session.exec(
         select(EstudianteMateria)
         .where(EstudianteMateria.id_estudiante == id_estudiante)
@@ -17,6 +19,7 @@ def get_by_ids(session: Session, id_estudiante: UUID, id_materia: UUID) -> Estud
     ).first()
 
 def get_aprobadas(session: Session, id_estudiante: UUID) -> list[EstudianteMateria]:
+    """Retorna solo las materias aprobadas de un estudiante."""
     return session.exec(
         select(EstudianteMateria)
         .where(EstudianteMateria.id_estudiante == id_estudiante)
@@ -24,6 +27,7 @@ def get_aprobadas(session: Session, id_estudiante: UUID) -> list[EstudianteMater
     ).all()
 
 def create(session: Session, data: EstudianteMateriaCreate) -> EstudianteMateria:
+    """Registra una materia para un estudiante."""
     est_materia = EstudianteMateria(
         id_estudiante=data.id_estudiante,
         id_materia=data.id_materia,
@@ -37,6 +41,7 @@ def create(session: Session, data: EstudianteMateriaCreate) -> EstudianteMateria
     return est_materia
 
 def update(session: Session, id_estudiante: UUID, id_materia: UUID, data: EstudianteMateriaUpdate) -> EstudianteMateria | None:
+    """Actualiza nota, status o semestre de una materia de un estudiante. Retorna None si no existe."""
     est_materia = session.exec(
         select(EstudianteMateria)
         .where(EstudianteMateria.id_estudiante == id_estudiante)
@@ -44,7 +49,7 @@ def update(session: Session, id_estudiante: UUID, id_materia: UUID, data: Estudi
     ).first()
     if not est_materia:
         return None
-    update_data = data.model_dump(exclude_unset=True)
+    update_data = data.model_dump(exclude_unset=True)  # Ignora campos no enviados
     for key, value in update_data.items():
         setattr(est_materia, key, value)
     session.add(est_materia)
@@ -53,6 +58,7 @@ def update(session: Session, id_estudiante: UUID, id_materia: UUID, data: Estudi
     return est_materia
 
 def delete(session: Session, id_estudiante: UUID, id_materia: UUID) -> bool:
+    """Elimina el registro de una materia de un estudiante. Retorna False si no existe."""
     est_materia = session.exec(
         select(EstudianteMateria)
         .where(EstudianteMateria.id_estudiante == id_estudiante)
