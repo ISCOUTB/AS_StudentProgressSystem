@@ -1,4 +1,4 @@
-```python id="d2m7qp"
+
 # Importa uuid para generar identificadores aleatorios en pruebas
 import uuid
 
@@ -189,4 +189,4 @@ def test_delete_categoria_inexistente(session):
 
     # Debe fallar
     assert result is False
-```
+

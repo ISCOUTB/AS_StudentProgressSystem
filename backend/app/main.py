@@ -1,4 +1,4 @@
-```python id="f3m7qp"
+
 # Importa FastAPI para crear la aplicación principal
 from fastapi import FastAPI
 
@@ -99,4 +99,4 @@ app.include_router(progreso.router)
 app.include_router(logro.router)
 app.include_router(logro_materia.router)
 app.include_router(estudiante_logro.router)
-```
+

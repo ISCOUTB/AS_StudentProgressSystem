@@ -1,4 +1,4 @@
-```python
+
 """
 Fixtures compartidas para todos los tests de repositorios.
 Usa SQLite en memoria para no requerir PostgreSQL al correr los tests.
@@ -190,4 +190,4 @@ def logro_materia(session, logro, materia):
     session.refresh(lm)
 
     return lm
-```
+

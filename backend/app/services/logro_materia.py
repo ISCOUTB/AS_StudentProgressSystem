@@ -1,4 +1,4 @@
-```python id="m5k9qp"
+
 # Importa Session para manejar la conexión con la base de datos
 from sqlmodel import Session
 
@@ -60,4 +60,4 @@ def delete(session: Session, id_logromateria: UUID) -> dict:
 
     # Mensaje de confirmación
     return {"message": "LogroMateria eliminado correctamente"}
-```
+

@@ -1,4 +1,4 @@
-```python id="p7m4qp"
+
 # Importa Session para manejar la conexión con la base de datos
 from sqlmodel import Session
 
@@ -97,4 +97,4 @@ def get_progreso(session: Session, id_estudiante: UUID, id_carrera: UUID) -> Pro
         porcentaje_avance=porcentaje_avance,
         materias=[MateriaProgressRead(**m) for m in materias]
     )
-```
+

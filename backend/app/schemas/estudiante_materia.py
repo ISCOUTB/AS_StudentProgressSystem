@@ -1,4 +1,4 @@
-```python id="m4k9zq"
+
 # Importa BaseModel para definir esquemas con Pydantic
 from pydantic import BaseModel
 
@@ -61,4 +61,4 @@ class EstudianteMateriaUpdate(BaseModel):
 
     # Semestre opcional
     semestre: str | None = None
-```
+

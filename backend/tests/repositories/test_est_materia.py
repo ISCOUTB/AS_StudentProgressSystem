@@ -1,4 +1,4 @@
-```python id="e4m9qp"
+
 # Importa uuid para generar IDs aleatorios en pruebas
 import uuid
 
@@ -220,4 +220,4 @@ def test_delete_inexistente(session):
 
     # Debe fallar
     assert result is False
-```
+

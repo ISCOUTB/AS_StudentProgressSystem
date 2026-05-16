@@ -1,4 +1,4 @@
-```python id="m8v4qz"
+
 # Importa herramientas principales de FastAPI
 from fastapi import APIRouter, Depends
 
@@ -64,4 +64,4 @@ def remove_materia(
     
     # Llama al servicio encargado de remover la materia de la malla
     return service.remove_materia(session, id_carrera, id_materia)
-```
+

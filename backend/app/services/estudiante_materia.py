@@ -1,4 +1,4 @@
-```python id="x9m4qp"
+
 # Importa Session para manejar la conexión con la base de datos
 from sqlmodel import Session
 
@@ -88,4 +88,4 @@ def delete(session: Session, id_estudiante: UUID, id_materia: UUID) -> dict:
 
     # Mensaje de confirmación
     return {"message": "Materia eliminada del estudiante correctamente"}
-```
+

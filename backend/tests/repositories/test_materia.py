@@ -1,6 +1,4 @@
-Claro 💛 aquí tienes tu código **solo comentado, sin cambiar absolutamente nada de la lógica**:
 
-```python
 import uuid
 import pytest
 from app.repositories import materia as repo
@@ -146,4 +144,4 @@ def test_delete_inexistente(session):
     
     # Debe retornar False porque no hay nada que eliminar
     assert result is False
-```
+

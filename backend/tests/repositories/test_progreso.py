@@ -1,6 +1,4 @@
-Claro 💛 aquí tienes tu código **solo comentado, sin modificar absolutamente nada de la lógica**:
 
-```python id="v9xk2p"
 import uuid
 import pytest
 from app.repositories import progreso as repo
@@ -106,4 +104,4 @@ def test_get_materias_con_status_multiples(session, estudiante, carrera, categor
     
     # Verifica que el estado sea "reprobada"
     assert result[0]["status"] == StatusMaterias.reprobada
-```
+

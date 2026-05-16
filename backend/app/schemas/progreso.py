@@ -1,4 +1,4 @@
-```python id="p9m2xq"
+
 # Importa BaseModel para definir esquemas con Pydantic
 from pydantic import BaseModel
 
@@ -72,4 +72,4 @@ class ProgresoRead(BaseModel):
 
     # Permite construir el modelo desde atributos ORM
     model_config = {"from_attributes": True}
-```
+

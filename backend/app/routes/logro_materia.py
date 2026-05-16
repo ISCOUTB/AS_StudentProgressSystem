@@ -1,4 +1,4 @@
-```python id="p3m8xq"
+
 # Importa herramientas principales de FastAPI
 from fastapi import APIRouter, Depends
 
@@ -72,4 +72,4 @@ def delete(
     
     # Llama al servicio encargado de eliminar la relación
     return service.delete(session, id_logromateria)
-```
+

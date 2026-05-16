@@ -1,4 +1,4 @@
-```python id="l2m8xq"
+
 # Importa BaseModel para definir esquemas con Pydantic
 from pydantic import BaseModel
 
@@ -49,4 +49,4 @@ class LogroUpdate(BaseModel):
 
     # Icono opcional
     icon: str | None = None
-```
+

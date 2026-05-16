@@ -1,4 +1,4 @@
-```python id="p6m2xq"
+
 # Importa BaseModel para definir esquemas con Pydantic
 from pydantic import BaseModel
 
@@ -43,4 +43,4 @@ class EstudianteLogroUpdate(BaseModel):
 
     # Estado opcional del logro
     status: StatusLogro | None = None
-```
+

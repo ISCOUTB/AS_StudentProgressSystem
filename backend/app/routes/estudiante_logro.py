@@ -1,4 +1,4 @@
-```python id="q9ms7k"
+
 # Importa herramientas principales de FastAPI
 from fastapi import APIRouter, Depends
 
@@ -86,4 +86,4 @@ def delete(
         id_estudiante,
         id_logromateria
     )
-```
+

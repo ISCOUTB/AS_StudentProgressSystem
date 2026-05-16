@@ -1,4 +1,4 @@
-```python id="r1m8qp"
+
 # Importa Depends y HTTPException para manejar dependencias y errores HTTP
 from fastapi import Depends, HTTPException
 
@@ -60,4 +60,4 @@ def get_current_user(
 
 # Alias tipado para usarlo fácilmente como dependencia en rutas protegidas
 CurrentUser = Annotated[Estudiantes, Depends(get_current_user)]
-```
+

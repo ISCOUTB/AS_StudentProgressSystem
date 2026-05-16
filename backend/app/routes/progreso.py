@@ -1,4 +1,4 @@
-```python id="v2k9lm"
+
 # Importa herramientas principales de FastAPI
 from fastapi import APIRouter, Depends
 
@@ -41,4 +41,4 @@ def get_progreso(
     
     # Llama al servicio que calcula el progreso del estudiante
     return service.get_progreso(session, id_estudiante, id_carrera)
-```
+

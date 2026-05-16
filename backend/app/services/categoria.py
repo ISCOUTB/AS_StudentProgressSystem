@@ -1,4 +1,4 @@
-```python id="c8m2qp"
+
 # Importa Session para manejar la conexión con la base de datos
 from sqlmodel import Session
 
@@ -78,4 +78,4 @@ def delete(session: Session, id_categoria: UUID) -> dict:
 
     # Mensaje de confirmación
     return {"message": "Categoría eliminada correctamente"}
-```
+
