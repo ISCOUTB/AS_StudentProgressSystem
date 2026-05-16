@@ -39,11 +39,10 @@ router = APIRouter(
 
 # Endpoint para obtener los datos del usuario autenticado
 @router.get("/me", response_model=EstudianteRead)
-def get_me(current_user: CurrentUser):
+def get_me(session: Annotated[Session, Depends(get_session)], current_user: CurrentUser):
 
     # Intenta obtener el estudiante asociado al usuario autenticado
-    # ⚠️ Nota: aquí debería llamarse al servicio con session si se necesita DB
-    return get_by_id(current_user.id_estudiante)
+    return get_by_id(current_user.id_estudiante, session)
 
 
 # Endpoint para obtener todos los estudiantes
