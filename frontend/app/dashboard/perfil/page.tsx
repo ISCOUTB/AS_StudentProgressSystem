@@ -1,115 +1,154 @@
-"use client"
+"use client";
 
-import { useState } from "react"
-import { Lock, Eye, EyeOff, ChevronRight } from "lucide-react"
+import { useState } from "react";
+import { useCurrentUser } from "@/hooks/useCurrentUser";
+import { Settings } from "lucide-react";
 
-export default function ProfilePage() {
-  const [currentPassword, setCurrentPassword] = useState("")
-  const [newPassword, setNewPassword] = useState("")
-  const [confirmPassword, setConfirmPassword] = useState("")
-  const [showCurrentPassword, setShowCurrentPassword] = useState(false)
-  const [showNewPassword, setShowNewPassword] = useState(false)
-  const [showConfirmPassword, setShowConfirmPassword] = useState(false)
+interface InfoPanelProps {
+  loading: boolean;
+  fullName: string | null;
+  escuela: string | null;
+  semesterLabel: string | null;
+  materiasAprobadas: number;
+  totalMaterias: number;
+  earnedCount: number;
+  totalLogros: number;
+}
+
+function capitalise(s: string) {
+  return s.charAt(0).toUpperCase() + s.slice(1);
+}
+
+function Skeleton({ className }: { className: string }) {
+  return (
+    <div className={`animate-pulse rounded bg-[#1a1a2e]/10 ${className}`} />
+  );
+}
+
+function InfoPanel({
+  loading,
+  fullName,
+  escuela,
+  semesterLabel,
+  materiasAprobadas,
+  totalMaterias,
+  earnedCount,
+  totalLogros,
+}: InfoPanelProps) {
+  const subjectPct =
+    totalMaterias > 0
+      ? Math.round((materiasAprobadas / totalMaterias) * 100)
+      : 0;
+  const logroPct =
+    totalLogros > 0 ? Math.round((earnedCount / totalLogros) * 100) : 0;
+
+  if (loading) {
+    return (
+      <div className="space-y-3 p-4">
+        <Skeleton className="h-4 w-36" />
+        <Skeleton className="h-3 w-48" />
+        <Skeleton className="h-3 w-28" />
+        <div className="mt-4 space-y-2 border-t border-[#1a1a2e]/10 pt-4">
+          <Skeleton className="h-3 w-24" />
+          <Skeleton className="h-6 w-16" />
+          <Skeleton className="h-2 w-full rounded-full" />
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <div className="mx-auto max-w-2xl">
-      {/* Password Section */}
-      <div className="overflow-hidden rounded-2xl bg-white/90 shadow-lg backdrop-blur-sm">
-        {/* Header */}
-        <div className="flex items-center gap-4 p-6 pb-4">
-          <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-[#1BB9EB]">
-            <Lock className="h-6 w-6 text-white" />
-          </div>
-          <div>
-            <h2 className="text-xl font-bold uppercase tracking-wide text-[#1a1a2e]">
-              Contraseña
-            </h2>
-            <p className="text-sm text-[#1a1a2e]/60">
-              Asegúrate de usar una contraseña segura.
-            </p>
-          </div>
+    <div className="p-4">
+      <h3 className="mb-2 text-lg font-bold uppercase tracking-wide text-[#1a1a2e]">
+        {fullName ?? "—"}
+      </h3>
+      <p className="mb-4 text-sm leading-relaxed text-[#1a1a2e]/70">
+        {escuela ?? "—"}
+      </p>
+      <p className="mb-4 text-sm leading-relaxed text-[#1a1a2e]/70">
+        {semesterLabel ? `. ${capitalise(semesterLabel)}.` : "."}
+      </p>
+      {/* Subjects */}
+      <div className="border-t border-[#1a1a2e]/10 pt-4">
+        <h4 className="mb-2 text-sm font-medium text-[#1a1a2e]/60">
+          Materias Cursadas
+        </h4>
+        <div className="flex items-baseline gap-1">
+          <span className="text-2xl font-bold text-[#1a1a2e]">
+            {materiasAprobadas}
+          </span>
+          <span className="text-lg text-[#1a1a2e]/40">
+            /{totalMaterias || "—"}
+          </span>
         </div>
-        
-        {/* Content */}
-        <div className="space-y-6 p-6 pt-2">
-          {/* Current Password */}
-          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-8">
-            <label className="w-48 flex-shrink-0 text-xs font-medium uppercase tracking-wider text-[#1a1a2e]/50">
-              Contraseña Actual
-            </label>
-            <div className="relative flex-1">
-              <input
-                type={showCurrentPassword ? "text" : "password"}
-                value={currentPassword}
-                onChange={(e) => setCurrentPassword(e.target.value)}
-                placeholder="Ingresa tu contraseña actual"
-                className="w-full rounded-xl border border-gray-200 bg-[#f8f8f8] px-4 py-3 pr-12 text-[#1a1a2e] placeholder-[#1a1a2e]/40 outline-none transition-colors focus:border-[#1BB9EB]"
-              />
-              <button
-                type="button"
-                onClick={() => setShowCurrentPassword(!showCurrentPassword)}
-                className="absolute right-4 top-1/2 -translate-y-1/2 text-[#1a1a2e]/40 hover:text-[#1a1a2e]"
-              >
-                {showCurrentPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
-              </button>
-            </div>
-          </div>
-          
-          {/* New Password */}
-          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-8">
-            <label className="w-48 flex-shrink-0 text-xs font-medium uppercase tracking-wider text-[#1a1a2e]/50">
-              Nueva Contraseña
-            </label>
-            <div className="relative flex-1">
-              <input
-                type={showNewPassword ? "text" : "password"}
-                value={newPassword}
-                onChange={(e) => setNewPassword(e.target.value)}
-                placeholder="Ingresa tu nueva contraseña"
-                className="w-full rounded-xl border border-gray-200 bg-[#f8f8f8] px-4 py-3 pr-12 text-[#1a1a2e] placeholder-[#1a1a2e]/40 outline-none transition-colors focus:border-[#1BB9EB]"
-              />
-              <button
-                type="button"
-                onClick={() => setShowNewPassword(!showNewPassword)}
-                className="absolute right-4 top-1/2 -translate-y-1/2 text-[#1a1a2e]/40 hover:text-[#1a1a2e]"
-              >
-                {showNewPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
-              </button>
-            </div>
-          </div>
-          
-          {/* Confirm Password */}
-          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-8">
-            <label className="w-48 flex-shrink-0 text-xs font-medium uppercase tracking-wider text-[#1a1a2e]/50">
-              Confirmar Nueva Contraseña
-            </label>
-            <div className="relative flex-1">
-              <input
-                type={showConfirmPassword ? "text" : "password"}
-                value={confirmPassword}
-                onChange={(e) => setConfirmPassword(e.target.value)}
-                placeholder="Confirma tu nueva contraseña"
-                className="w-full rounded-xl border border-gray-200 bg-[#f8f8f8] px-4 py-3 pr-12 text-[#1a1a2e] placeholder-[#1a1a2e]/40 outline-none transition-colors focus:border-[#1BB9EB]"
-              />
-              <button
-                type="button"
-                onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                className="absolute right-4 top-1/2 -translate-y-1/2 text-[#1a1a2e]/40 hover:text-[#1a1a2e]"
-              >
-                {showConfirmPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
-              </button>
-            </div>
-          </div>
-          
-          {/* Update Button */}
-          <div className="flex justify-end pt-4">
-            <button className="group flex items-center gap-2 rounded-lg bg-[#1BB9EB] px-6 py-3 font-bold uppercase tracking-wide text-white transition-all hover:bg-[#0891b2]">
-              Actualizar Contraseña
-              <ChevronRight className="h-5 w-5 transition-transform group-hover:translate-x-1" />
-            </button>
-          </div>
+        <div className="mt-2 h-2 w-full overflow-hidden rounded-full bg-gray-200">
+          <div
+            className="h-full rounded-full bg-[#00C853] transition-all duration-700"
+            style={{ width: `${subjectPct}%` }}
+          />
+        </div>
+      </div>
+
+      {/* Logros */}
+      <div className="mt-4 border-t border-[#1a1a2e]/10 pt-4">
+        <h4 className="mb-2 text-sm font-medium text-[#1a1a2e]/60">
+          Logros Obtenidos
+        </h4>
+        <div className="flex items-baseline gap-1">
+          <span className="text-2xl font-bold text-[#1a1a2e]">
+            {earnedCount}
+          </span>
+          <span className="text-lg text-[#1a1a2e]/40">
+            /{totalLogros || "—"}
+          </span>
+        </div>
+        <div className="mt-2 h-2 w-full overflow-hidden rounded-full bg-gray-200">
+          <div
+            className="h-full rounded-full bg-[#1BB9EB] transition-all duration-700"
+            style={{ width: `${logroPct}%` }}
+          />
         </div>
       </div>
     </div>
-  )
+  );
+}
+
+export default function ProfilePage() {
+  const [showAll, setShowAll] = useState(false);
+  const { profile, loading } = useCurrentUser();
+
+  // ── Derived values ────────────────────────────────────────────────────────
+  const fullName = profile?.fullName ?? null;
+  const escuela = profile?.carrera?.escuela ?? null;
+  const semesterLabel = profile?.semesterLabel ?? null;
+  const materiasAprobadas = profile?.materiasAprobadas ?? 0;
+  const totalMaterias = profile?.totalMaterias ?? 0;
+  const logros = profile?.logros ?? [];
+  const earnedLogros = profile?.earnedLogros ?? [];
+  const earnedNames = new Set(earnedLogros.map((l) => l.nombre));
+
+  const infoPanelProps: InfoPanelProps = {
+    loading,
+    fullName,
+    escuela,
+    semesterLabel,
+    materiasAprobadas,
+    totalMaterias,
+    earnedCount: earnedLogros.length,
+    totalLogros: logros.length,
+  };
+
+  return (
+    <div className="mx-auto max-w-2xl">
+      <div className="overflow-hidden rounded-2xl border border-[#00C853] bg-white/90 shadow-sm backdrop-blur-sm">
+        <div className="border-b border-[#00C853]/20 bg-[#00C853] px-4 py-3">
+          <div className="flex items-center gap-2 text-xs font-medium uppercase tracking-wider text-white">
+            <Settings className="h-4 w-4" />
+            <span>Información Personal</span>
+          </div>
+        </div>
+        <InfoPanel {...infoPanelProps} />
+      </div>
+    </div>
+  );
 }
