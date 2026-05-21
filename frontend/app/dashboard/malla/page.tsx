@@ -1,8 +1,9 @@
 "use client";
 
 import { Award, BookOpen, Percent, GraduationCap } from "lucide-react";
+import { useCurrentUser } from "@/hooks/useCurrentUser";
 
-// Subject type categories with colors
+// ── Category colours (unchanged) ─────────────────────────────────────────────
 const categoryColors: Record<string, string> = {
   humanistico: "bg-yellow-400",
   lenguaExtranjera: "bg-green-500",
@@ -12,7 +13,7 @@ const categoryColors: Record<string, string> = {
   integrador: "bg-emerald-600",
 };
 
-// Curriculum data organized by level
+// ── Curriculum data (unchanged) ───────────────────────────────────────────────
 const curriculumData = [
   {
     level: "NIVEL I",
@@ -523,10 +524,44 @@ const legend = [
   { label: "Comp. Integrador", color: "bg-emerald-600" },
 ];
 
+// ── Stat card skeleton ────────────────────────────────────────────────────────
+function StatSkeleton() {
+  return (
+    <div className="flex items-center gap-3 rounded-xl border border-[#1a1a2e]/10 bg-white/90 p-3 backdrop-blur-sm">
+      <div className="h-8 w-8 shrink-0 animate-pulse rounded-full bg-[#1a1a2e]/10" />
+      <div className="space-y-1">
+        <div className="h-2 w-12 animate-pulse rounded bg-[#1a1a2e]/10" />
+        <div className="h-6 w-16 animate-pulse rounded bg-[#1a1a2e]/10" />
+      </div>
+    </div>
+  );
+}
+
+// ── Page ──────────────────────────────────────────────────────────────────────
 export default function MallaPage() {
+  const { profile, loading } = useCurrentUser();
+
+  // Derive stat values — safe defaults while loading or when data is absent
+  const pga = profile?.pga ?? null;
+  const creditos = profile?.progress?.creditos_aprobados ?? null;
+  const aprobadas = profile?.materiasAprobadas ?? null;
+  const total = profile?.totalMaterias ?? null;
+  const progreso = profile?.progress?.porcentaje_avance ?? null;
+
+  // PGA formatted to 2 decimal places, e.g. "4.20"
+  const pgaLabel =
+    pga !== null && pga > 0
+      ? pga.toFixed(2)
+      : pga === 0 && profile !== null
+        ? "—"
+        : "—";
+
+  // Progress formatted as "X%" or "X.XX%"
+  const progresoLabel = progreso !== null ? `${Math.round(progreso)}%` : "—";
+
   return (
     <div className="flex flex-col gap-4">
-      {/* Page Header */}
+      {/* Page Header (unchanged) */}
       <div>
         <h1 className="text-2xl font-bold uppercase tracking-wide text-[#1a1a2e]">
           Ver Malla
@@ -534,8 +569,7 @@ export default function MallaPage() {
         <p className="text-sm text-[#1a1a2e]/60">Malla Curricular</p>
       </div>
 
-      {/* Top Section: Program Info + Legend + Stats in a Grid */}
-      {/* Program Info */}
+      {/* Program Info (unchanged) */}
       <div className="max-w-5xl rounded-xl border border-[#1a1a2e]/10 bg-white/90 p-4 backdrop-blur-sm">
         <div className="mb-3">
           <span className="text-xs font-medium uppercase text-[#1BB9EB]">
@@ -582,7 +616,7 @@ export default function MallaPage() {
         </div>
       </div>
 
-      {/* Curriculum Grid - Only this part scrolls horizontally */}
+      {/* Curriculum Grid (unchanged) */}
       <div className="overflow-x-auto rounded-xl border border-[#1a1a2e]/10 bg-white/90 p-4 backdrop-blur-sm">
         <div className="flex min-w-[1400px] gap-2">
           {curriculumData.map((level, levelIndex) => (
@@ -590,14 +624,11 @@ export default function MallaPage() {
               key={levelIndex}
               className="flex w-[140px] shrink-0 flex-col gap-2"
             >
-              {/* Level Header */}
               <div className="rounded-lg bg-[#1BB9EB] px-2 py-2 text-center">
                 <span className="text-xs font-bold text-white">
                   {level.level}
                 </span>
               </div>
-
-              {/* Subjects */}
               <div className="flex flex-col gap-1.5">
                 {level.subjects.map((subject, subjectIndex) => (
                   <div
@@ -644,7 +675,7 @@ export default function MallaPage() {
         </div>
       </div>
 
-      {/* Legend */}
+      {/* Legend (unchanged) */}
       <div className="max-w-5xl rounded-xl border border-[#1a1a2e]/10 bg-white/90 p-4 backdrop-blur-sm">
         <span className="mb-3 block text-xs font-medium uppercase text-[#1a1a2e]/50">
           Leyenda de Componentes
@@ -659,46 +690,76 @@ export default function MallaPage() {
         </div>
       </div>
 
-      {/* Stats with PGA */}
+      {/* ── Stat cards — only these values are dynamic ────────────────────── */}
       <div className="max-w-5xl grid grid-cols-2 gap-3">
-        <div className="flex items-center gap-3 rounded-xl border border-[#1a1a2e]/10 bg-white/90 p-3 backdrop-blur-sm">
-          <GraduationCap className="h-8 w-8 shrink-0 text-[#1BB9EB]" />
-          <div>
-            <p className="text-[10px] font-medium uppercase text-[#1BB9EB]">
-              PGA
-            </p>
-            <p className="text-2xl font-bold text-[#1a1a2e]">4.69</p>
+        {/* PGA */}
+        {loading ? (
+          <StatSkeleton />
+        ) : (
+          <div className="flex items-center gap-3 rounded-xl border border-[#1a1a2e]/10 bg-white/90 p-3 backdrop-blur-sm">
+            <GraduationCap className="h-8 w-8 shrink-0 text-[#1BB9EB]" />
+            <div>
+              <p className="text-[10px] font-medium uppercase text-[#1BB9EB]">
+                PGA
+              </p>
+              <p className="text-2xl font-bold text-[#1a1a2e]">{pgaLabel}</p>
+            </div>
           </div>
-        </div>
-        <div className="flex items-center gap-3 rounded-xl border border-[#1a1a2e]/10 bg-white/90 p-3 backdrop-blur-sm">
-          <Award className="h-8 w-8 shrink-0 text-[#1a1a2e]/40" />
-          <div>
-            <p className="text-[10px] font-medium uppercase text-[#1a1a2e]/50">
-              Créditos
-            </p>
-            <p className="text-2xl font-bold text-[#1a1a2e]">119</p>
+        )}
+
+        {/* Créditos */}
+        {loading ? (
+          <StatSkeleton />
+        ) : (
+          <div className="flex items-center gap-3 rounded-xl border border-[#1a1a2e]/10 bg-white/90 p-3 backdrop-blur-sm">
+            <Award className="h-8 w-8 shrink-0 text-[#1a1a2e]/40" />
+            <div>
+              <p className="text-[10px] font-medium uppercase text-[#1a1a2e]/50">
+                Créditos
+              </p>
+              <p className="text-2xl font-bold text-[#1a1a2e]">
+                {creditos !== null ? creditos : "—"}
+              </p>
+            </div>
           </div>
-        </div>
-        <div className="flex items-center gap-3 rounded-xl border border-[#1a1a2e]/10 bg-white/90 p-3 backdrop-blur-sm">
-          <BookOpen className="h-8 w-8 shrink-0 text-[#1a1a2e]/40" />
-          <div>
-            <p className="text-[10px] font-medium uppercase text-[#1a1a2e]/50">
-              Materias
-            </p>
-            <p className="text-2xl font-bold text-[#1a1a2e]">
-              42<span className="text-sm text-[#1a1a2e]/40">/56</span>
-            </p>
+        )}
+
+        {/* Materias */}
+        {loading ? (
+          <StatSkeleton />
+        ) : (
+          <div className="flex items-center gap-3 rounded-xl border border-[#1a1a2e]/10 bg-white/90 p-3 backdrop-blur-sm">
+            <BookOpen className="h-8 w-8 shrink-0 text-[#1a1a2e]/40" />
+            <div>
+              <p className="text-[10px] font-medium uppercase text-[#1a1a2e]/50">
+                Materias
+              </p>
+              <p className="text-2xl font-bold text-[#1a1a2e]">
+                {aprobadas !== null ? aprobadas : "—"}
+                <span className="text-sm text-[#1a1a2e]/40">
+                  /{total !== null ? total : "—"}
+                </span>
+              </p>
+            </div>
           </div>
-        </div>
-        <div className="flex items-center gap-3 rounded-xl border border-[#1a1a2e]/10 bg-white/90 p-3 backdrop-blur-sm">
-          <Percent className="h-8 w-8 shrink-0 text-[#1a1a2e]/40" />
-          <div>
-            <p className="text-[10px] font-medium uppercase text-[#1a1a2e]/50">
-              Progreso
-            </p>
-            <p className="text-2xl font-bold text-[#1a1a2e]">75%</p>
+        )}
+
+        {/* Progreso */}
+        {loading ? (
+          <StatSkeleton />
+        ) : (
+          <div className="flex items-center gap-3 rounded-xl border border-[#1a1a2e]/10 bg-white/90 p-3 backdrop-blur-sm">
+            <Percent className="h-8 w-8 shrink-0 text-[#1a1a2e]/40" />
+            <div>
+              <p className="text-[10px] font-medium uppercase text-[#1a1a2e]/50">
+                Progreso
+              </p>
+              <p className="text-2xl font-bold text-[#1a1a2e]">
+                {progresoLabel}
+              </p>
+            </div>
           </div>
-        </div>
+        )}
       </div>
     </div>
   );

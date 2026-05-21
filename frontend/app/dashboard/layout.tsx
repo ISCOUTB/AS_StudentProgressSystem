@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { Map } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { User, Grid3X3, Trophy, LogOut, Menu, X } from "lucide-react";
@@ -29,6 +30,12 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
       href: "/dashboard/malla",
       icon: Grid3X3,
       active: pathname === "/dashboard/malla",
+    },
+    {
+      name: "Quests",
+      href: "/dashboard/quests",
+      icon: Map,
+      active: pathname === "/dashboard/quests",
     },
     {
       name: "Ver Logros",

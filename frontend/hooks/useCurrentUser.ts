@@ -68,6 +68,16 @@ export interface EstudianteLogroData {
   status: string;
 }
 
+/** Raw row from GET /estudiante-materia/{id} */
+export interface EstudianteMateriaData {
+  id_estudiante: string;
+  id_materia: string;
+  /** "Aprobada" | "Reprobada" | "En Curso" */
+  status: string;
+  nota: number;
+  semestre: string;
+}
+
 /**
  * Fully resolved logro with its earned state.
  * Built by joining the three lists above.
@@ -97,6 +107,8 @@ export interface CurrentUserProfile {
   semesterLabel: string | null;
   materiasAprobadas: number;
   totalMaterias: number;
+  /** Weighted average of approved subject grades (0 when no grades exist) */
+  pga: number;
 }
 
 // ── Semester label helpers ─────────────────────────────────────────────────────
@@ -252,6 +264,7 @@ export function useCurrentUser(): UseCurrentUserResult {
           allLogros,
           allLogrosMateria,
           estudianteLogros,
+          estudianteMaterias,
         ] = await Promise.all([
           // progress (needs enrollment)
           enrollment
@@ -292,12 +305,35 @@ export function useCurrentUser(): UseCurrentUserResult {
               r.ok ? (r.json() as Promise<EstudianteLogroData[]>) : [],
             )
             .catch((): EstudianteLogroData[] => []),
+
+          // student's subject grades (for PGA computation)
+          fetch(`${API_URL}/estudiante-materia/${student.id_estudiante}`, {
+            headers,
+          })
+            .then((r) =>
+              r.ok ? (r.json() as Promise<EstudianteMateriaData[]>) : [],
+            )
+            .catch((): EstudianteMateriaData[] => []),
         ]);
 
         progress = fetchedProgress;
         carrera = fetchedCarrera;
 
-        // ── Step 4: join logros ─────────────────────────────────────────────
+        // ── Step 4a: compute PGA from approved subject grades ──────────────
+        const approvedGrades = (estudianteMaterias ?? [])
+          .filter((m) => m.status === "Aprobada" && m.nota > 0)
+          .map((m) => m.nota);
+
+        const pga =
+          approvedGrades.length > 0
+            ? Math.round(
+                (approvedGrades.reduce((sum, n) => sum + n, 0) /
+                  approvedGrades.length) *
+                  100,
+              ) / 100
+            : 0;
+
+        // ── Step 4b: join logros ────────────────────────────────────────────
         //
         // Index: logromateria_id → earned status
         const earnedSet = new Set<string>(
@@ -339,6 +375,7 @@ export function useCurrentUser(): UseCurrentUserResult {
           semesterLabel: parseSemesterLabel(enrollment?.semestre ?? null),
           materiasAprobadas: progress?.materias_aprobadas ?? 0,
           totalMaterias: progress?.total_materias ?? 0,
+          pga,
         });
       })
       .catch((err) => setError((err as Error).message ?? "Error"))

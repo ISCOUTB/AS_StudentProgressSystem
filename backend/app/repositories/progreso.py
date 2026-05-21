@@ -1,15 +1,11 @@
 from sqlmodel import Session, select
 from uuid import UUID
-
 # Importa la tabla intermedia entre carreras y materias
 from app.models.carrera_materia import CarreraMateria
-
 # Importa la relación entre estudiantes y materias
 from app.models.estudiante_materia import EstudianteMateria
-
 # Importa el modelo de materias
 from app.models.materia import Materias
-
 # Importa el enum con los posibles estados de una materia
 from app.enums.status_materia import StatusMaterias
 
@@ -53,20 +49,17 @@ def get_materias_con_status(
 
         # Agrega la información de la materia al resultado
         resultado.append({
-
             # ID de la materia
             "id_materia": materia.id_materia,
-
             # Nombre de la materia
             "nombre": materia.nombre,
-
             # Créditos de la materia
             "creditos": materia.creditos,
-
             # Estado de la materia:
             # - Si existe registro del estudiante, usa su status
             # - Si no existe, asigna "encurso" por defecto
-            "status": est_materia.status if est_materia else StatusMaterias.encurso
+            "status": est_materia.status if est_materia else StatusMaterias.encurso,
+            "nota":       est_materia.nota   if est_materia else 0.0,
         })
 
     # Retorna la lista completa de materias con estado
