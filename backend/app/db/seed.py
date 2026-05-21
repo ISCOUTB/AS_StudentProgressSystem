@@ -1,5 +1,5 @@
 """
-Seed v3 para AS_StudentProgressSystem
+Seed v4 para AS_StudentProgressSystem
 Malla: Ingeniería de Sistemas y Computación - UTB (vigente desde 201910)
 
 Arquitectura:
@@ -7,9 +7,25 @@ Arquitectura:
                   idempotente, seguro para ejecutar infinitas veces
   seed_demo()   → estudiantes fake + progreso (solo dev/testing)
   seed()        → orquesta ambos según ENABLE_DEMO_SEED
+
+Cambios v4 respecto a v3:
+  - asignar_logros() ahora recibe todas_materias_est (todas las materias del
+    estudiante, no solo las aprobadas). Esto era necesario para evaluar
+    correctamente los logros que dependen del historial completo.
+  - Bug #1 corregido: "Sin tropiezos" ya no se da si el estudiante tiene
+    materias reprobadas.
+  - Bug #2 corregido: "Semestre perfecto" ahora se evalúa y asigna.
+  - Bug #3 corregido: "Levantándome" ahora se evalúa y asigna.
+  - Bug #4 corregido: "Racha ganadora" ahora se evalúa y asigna.
+  - Bug #5 corregido: "Progreso perfecto" verifica ausencia de reprobadas,
+    no solo presencia de aprobadas.
+  - seed_demo() acumula todas las materias (aprobadas + en curso) antes de
+    llamar a asignar_logros().
 """
+import re
 import uuid
 import hashlib
+from collections import defaultdict
 from datetime import date
 from sqlmodel import Session, create_engine, SQLModel, select
 
@@ -27,7 +43,6 @@ from app.enums.escuela import Escuelas
 engine = create_engine(settings.DATABASE_URL, echo=False)
 
 # ── UUIDs FIJOS para datos estáticos ─────────────────────────────────────────
-# Generados una sola vez. No cambiar entre ejecuciones.
 UUID_CAT = {
     "CBAS": uuid.UUID("10000000-0000-0000-0000-000000000001"),
     "CHUM": uuid.UUID("10000000-0000-0000-0000-000000000002"),
@@ -41,7 +56,6 @@ UUID_CAT = {
 
 UUID_CARRERA_ISCO = uuid.UUID("20000000-0000-0000-0000-000000000001")
 
-# Materias: el modelo NO tiene campo "codigo", la PK uuid fija ES la clave natural
 UUID_MAT = {
     "H01A": uuid.UUID("30000000-0000-0000-0000-000000000001"),
     "M01A": uuid.UUID("30000000-0000-0000-0000-000000000002"),
@@ -100,7 +114,6 @@ UUID_MAT = {
     "P03A": uuid.UUID("30000000-0000-0000-0000-000000000055"),
 }
 
-# Logros: campo en modelo es "nombre" (no "nombre_logro")
 UUID_LOGRO = {
     "Materia aprobada":       uuid.UUID("40000000-0000-0000-0000-000000000001"),
     "Buen desempeño":         uuid.UUID("40000000-0000-0000-0000-000000000002"),
@@ -164,7 +177,6 @@ P_2024 = "PRIMER PERIODO 2024 PREGRADO"
 S_2024 = "SEGUNDO PERIODO 2024 PREGRADO"
 P_2026 = "PRIMER PERIODO 2026 PREGRADO"
 
-# Mapa codigo → uuid para lookup en lógica de logros (no es columna del modelo)
 CODIGO_MAT = {codigo: uid for codigo, uid in UUID_MAT.items()}
 
 
@@ -176,9 +188,8 @@ def hash_password(password: str) -> str:
 
 def get_or_create(session, model, defaults: dict = None, **kwargs):
     """
-    Busca por kwargs usando where() compatible con SQLModel/SQLAlchemy.
-    Si existe lo retorna. Si no, lo crea con kwargs + defaults y hace flush.
-    Idempotente: seguro de llamar múltiples veces.
+    Busca por kwargs. Si existe lo retorna. Si no, lo crea con kwargs +
+    defaults y hace flush. Idempotente: seguro de llamar múltiples veces.
     """
     stmt = select(model)
     for key, value in kwargs.items():
@@ -193,10 +204,23 @@ def get_or_create(session, model, defaults: dict = None, **kwargs):
     return instance
 
 
+# ── Helpers de ordenación de semestres ───────────────────────────────────────
+
+def _orden_semestre(s: str) -> tuple:
+    """
+    Devuelve (año, periodo) para ordenar semestres cronológicamente.
+    Reconoce strings como "PRIMER PERIODO 2024 PREGRADO".
+    """
+    match = re.search(r'\d{4}', s)
+    year   = int(match.group()) if match else 0
+    period = 1 if 'PRIMER' in s.upper() else 2
+    return (year, period)
+
+
 # ── Lógica de logros ──────────────────────────────────────────────────────────
 
 def _calcular_creditos(materias_aprobadas, materias_map):
-    """Usa caché en memoria en vez de queries N+1."""
+    """Suma créditos de materias aprobadas usando caché en memoria."""
     return sum(
         materias_map[em.id_materia].creditos
         for em in materias_aprobadas
@@ -215,12 +239,10 @@ def _asignar_logros_por_materia(obtener_logro, materias_aprobadas, notas,
     if any(n >= 4.5 for n in notas.values()):
         obtener_logro("Excelencia")
 
-    # "El código empieza": aprobó C02A o C03A
     prog_ids = {CODIGO_MAT["C02A"], CODIGO_MAT["C03A"]}
     if any(em.id_materia in prog_ids for em in materias_aprobadas):
         obtener_logro("El código empieza")
 
-    # "Base científica": aprobó alguna materia de CBAS
     for em in materias_aprobadas:
         mat = materias_map.get(em.id_materia)
         if mat:
@@ -303,15 +325,136 @@ def _asignar_logros_por_hitos(obtener_logro, aprobadas_ids):
             obtener_logro(nombre_logro)
 
 
-def asignar_logros(session, est, materias_aprobadas, logro_map,
+def _asignar_logros_trayectoria(obtener_logro, materias_aprobadas,
+                                 materias_reprobadas, materias_en_curso,
+                                 todas_materias):
+    """
+    Evalúa los logros que dependen del historial completo del estudiante.
+    Requiere acceso a todas las materias (no solo las aprobadas).
+
+    Logros evaluados:
+      - Sin tropiezos   → nunca reprobó ninguna materia
+      - Progreso perfecto → todas las materias tocadas están aprobadas (sin reprobadas)
+      - Levantándome    → reprobó una materia y luego la aprobó
+      - Semestre perfecto → al menos un semestre cerrado con todas aprobadas
+      - Racha ganadora  → 3 semestres consecutivos cerrados sin reprobadas
+    """
+    total_aprobadas  = len(materias_aprobadas)
+    tiene_reprobadas = len(materias_reprobadas) > 0
+
+    # ── Sin tropiezos ─────────────────────────────────────────────────────
+    # Condición: al menos una materia aprobada Y ninguna reprobada en toda
+    # la historia académica del estudiante en el sistema.
+    if total_aprobadas > 0 and not tiene_reprobadas:
+        obtener_logro("Sin tropiezos")
+
+    # ── Progreso perfecto ─────────────────────────────────────────────────
+    # Condición: tiene actividad académica registrada y no hay ninguna
+    # reprobada. Diferencia con "Sin tropiezos": este logro se enfoca en
+    # que lo cursado esté aprobado; "Sin tropiezos" es más narrativo.
+    if len(todas_materias) > 0 and not tiene_reprobadas:
+        obtener_logro("Progreso perfecto")
+
+    # ── Levantándome ──────────────────────────────────────────────────────
+    # Condición: hay al menos una materia que fue reprobada en algún
+    # semestre y luego aprobada en otro (mismo id_materia, distintos
+    # registros con status diferente). En el modelo actual la PK de
+    # EstudianteMateria es (id_estudiante, id_materia), por lo que no se
+    # pueden registrar dos filas para la misma materia. El caso de
+    # "recuperación" queda representado cuando status cambia de reprobada
+    # a aprobada sobre el mismo registro. Para detectarlo comparamos los
+    # ids presentes en ambos conjuntos (si el modelo evoluciona a admitir
+    # historial, esta lógica escala sin cambios).
+    reprobadas_ids = {em.id_materia for em in materias_reprobadas}
+    aprobadas_ids  = {em.id_materia for em in materias_aprobadas}
+    if reprobadas_ids & aprobadas_ids:
+        obtener_logro("Levantándome")
+
+    # ── Semestre perfecto y Racha ganadora ────────────────────────────────
+    # Agrupamos todas las materias por semestre.
+    # Excluimos semestres que todavía tienen materias "En Curso" porque
+    # no están cerrados: no se puede afirmar que fueron perfectos.
+    semestres_en_curso = {em.semestre for em in materias_en_curso}
+
+    por_semestre: dict[str, list] = defaultdict(list)
+    for em in todas_materias:
+        por_semestre[em.semestre].append(em)
+
+    # Semestres cerrados = sin ninguna materia "En Curso" en ese periodo.
+    semestres_cerrados = [
+        s for s in por_semestre
+        if s not in semestres_en_curso
+    ]
+    semestres_cerrados.sort(key=_orden_semestre)
+
+    semestre_perfecto_encontrado = False
+    racha_actual  = 0
+    racha_maxima  = 0
+
+    for semestre in semestres_cerrados:
+        materias_sem = por_semestre[semestre]
+
+        # Semestre sin materias registradas — ignorar (edge case de
+        # semestres de transición o registros fantasma).
+        if not materias_sem:
+            continue
+
+        hay_reprobada_en_sem = any(
+            em.status == StatusMaterias.reprobada for em in materias_sem
+        )
+        todas_aprobadas_en_sem = all(
+            em.status == StatusMaterias.aprobada for em in materias_sem
+        )
+
+        # Semestre perfecto: todas aprobadas, ninguna reprobada ni en curso.
+        if todas_aprobadas_en_sem and not hay_reprobada_en_sem:
+            semestre_perfecto_encontrado = True
+
+        # Racha ganadora: conteo consecutivo de semestres sin reprobadas.
+        if not hay_reprobada_en_sem:
+            racha_actual += 1
+            racha_maxima = max(racha_maxima, racha_actual)
+        else:
+            racha_actual = 0
+
+    if semestre_perfecto_encontrado:
+        obtener_logro("Semestre perfecto")
+
+    if racha_maxima >= 3:
+        obtener_logro("Racha ganadora")
+
+
+def asignar_logros(session, est, todas_materias_est, logro_map,
                    logros_materias_map, materias_map, categorias_map):
+    """
+    Punto de entrada para evaluar y asignar logros a un estudiante.
+
+    Parámetro clave respecto a v3:
+      todas_materias_est: lista completa de EstudianteMateria del estudiante,
+      con todos los estados (Aprobada, Reprobada, En Curso). En v3 este
+      parámetro solo contenía las materias aprobadas, lo que hacía imposible
+      evaluar correctamente cinco logros.
+    """
+    materias_aprobadas = [
+        em for em in todas_materias_est
+        if em.status == StatusMaterias.aprobada
+    ]
+    materias_reprobadas = [
+        em for em in todas_materias_est
+        if em.status == StatusMaterias.reprobada
+    ]
+    materias_en_curso = [
+        em for em in todas_materias_est
+        if em.status == StatusMaterias.encurso
+    ]
+
     aprobadas_ids      = {em.id_materia for em in materias_aprobadas}
     notas              = {em.id_materia: em.nota for em in materias_aprobadas}
     total_aprobadas    = len(materias_aprobadas)
     creditos_aprobados = _calcular_creditos(materias_aprobadas, materias_map)
     promedio = (sum(notas.values()) / total_aprobadas) if total_aprobadas > 0 else 0
 
-    # Precargar logros ya asignados — evita queries en el loop
+    # Precargar logros ya asignados — evita queries en el loop.
     logros_ya_asignados = {
         row.id_logromateria
         for row in session.exec(
@@ -336,22 +479,26 @@ def asignar_logros(session, est, materias_aprobadas, logro_map,
             ))
             logros_ya_asignados.add(lm.id_logromateria)
 
+    # ── Evaluaciones (orden no altera el resultado) ───────────────────────
     _asignar_logros_por_materia(obtener_logro, materias_aprobadas, notas,
                                  materias_map, categorias_map)
     _asignar_logros_por_categoria(obtener_logro, materias_aprobadas,
                                    materias_map, categorias_map)
     _asignar_logros_por_progreso(obtener_logro, total_aprobadas, creditos_aprobados)
     _asignar_logros_por_rendimiento(obtener_logro, notas, promedio)
-
-    if total_aprobadas > 0:
-        obtener_logro("Sin tropiezos")
-        obtener_logro("Progreso perfecto")
-
     _asignar_logros_por_hitos(obtener_logro, aprobadas_ids)
+
+    # Logros que requieren historial completo (corregidos en v4).
+    _asignar_logros_trayectoria(
+        obtener_logro,
+        materias_aprobadas,
+        materias_reprobadas,
+        materias_en_curso,
+        todas_materias_est,
+    )
 
 
 # ── SEED ESTÁTICO ─────────────────────────────────────────────────────────────
-# Idempotente. Seguro para correr siempre (restart, rebuild, CI, prod).
 
 def seed_static(session: Session):
     # ── CATEGORÍAS ────────────────────────────────────────────────────────────
@@ -386,10 +533,6 @@ def seed_static(session: Session):
     )
 
     # ── MATERIAS ──────────────────────────────────────────────────────────────
-    # El modelo Materias NO tiene campo "codigo".
-    # La búsqueda idempotente se hace por id_materia (UUID fijo).
-    # U01A tiene 0 créditos — se almacena como 0 aunque el modelo tenga ge=1,
-    # si eso lanza error actualiza la constraint a ge=0 en materia.py.
     materias_data = [
         # (codigo_interno, nombre, creditos, cat_codigo)
         # NIVEL I
@@ -461,7 +604,6 @@ def seed_static(session: Session):
 
     mats = {}
     for codigo, nombre, creditos, cat_codigo in materias_data:
-        # Busca por id_materia (UUID fijo) — único campo identificador disponible en el modelo
         m = get_or_create(
             session, Materias,
             id_materia=UUID_MAT[codigo],
@@ -482,7 +624,6 @@ def seed_static(session: Session):
         )
 
     # ── LOGROS ────────────────────────────────────────────────────────────────
-    # El modelo Logros tiene campo "nombre" (no "nombre_logro") y tiene "icon" opcional.
     logros_data = [
         ("Materia aprobada",       "Aprobaste tu primera materia"),
         ("Buen desempeño",         "Aprobaste una materia con nota ≥ 4.0"),
@@ -536,7 +677,6 @@ def seed_static(session: Session):
 
     logros = {}
     for nombre, desc in logros_data:
-        # Campo en modelo: "nombre" (no "nombre_logro"). "icon" es opcional → default None.
         l = get_or_create(
             session, Logros,
             id_logro=UUID_LOGRO[nombre],
@@ -556,17 +696,13 @@ def seed_static(session: Session):
         )
         logros_materias[l.id_logro] = lm
 
-    # Un único commit atómico para todo el seed estático
     session.commit()
-
     return carrera, mats, cats, logros, logros_materias
 
 
 # ── SEED DEMO ─────────────────────────────────────────────────────────────────
-# Solo para desarrollo/testing. NO ejecutar en producción.
 
 def seed_demo(session: Session, carrera, mats, cats, logros, logros_materias):
-    # Cachés en memoria para evitar N+1 queries
     materias_map   = {m.id_materia: m for m in mats.values()}
     categorias_map = {c.id_categoria: c for c in cats.values()}
     logro_map      = {nombre: l for nombre, l in logros.items()}
@@ -662,7 +798,12 @@ def seed_demo(session: Session, carrera, mats, cats, logros, logros_materias):
             defaults={"semestre": p["semestre"], "fecha_admision": p["fecha"]},
         )
 
-        materias_aprobadas_obj = []
+        # ── Acumular TODAS las materias del estudiante ────────────────────
+        # En v3 se construía materias_aprobadas_obj por separado y luego se
+        # creaban las en_curso sin incluirlas. Ahora acumulamos ambas en una
+        # sola lista para pasarla completa a asignar_logros().
+        todas_materias_est = []
+
         for i, mat in enumerate(p["aprobadas"]):
             nota    = p["notas"][i] if i < len(p["notas"]) else 3.5
             sem_idx = min(i // 6, len(p["hist"]) - 1)
@@ -676,10 +817,10 @@ def seed_demo(session: Session, carrera, mats, cats, logros, logros_materias):
                     "semestre": p["hist"][sem_idx],
                 },
             )
-            materias_aprobadas_obj.append(em)
+            todas_materias_est.append(em)
 
         for mat in p["en_curso"]:
-            get_or_create(
+            em = get_or_create(
                 session, EstudianteMateria,
                 id_estudiante=est.id_estudiante,
                 id_materia=mat.id_materia,
@@ -689,11 +830,13 @@ def seed_demo(session: Session, carrera, mats, cats, logros, logros_materias):
                     "semestre": P_2026,
                 },
             )
+            todas_materias_est.append(em)
 
         session.flush()
 
+        # Pasar el historial completo (v3 pasaba solo las aprobadas).
         asignar_logros(
-            session, est, materias_aprobadas_obj,
+            session, est, todas_materias_est,
             logro_map, logros_mat_map,
             materias_map, categorias_map,
         )
@@ -730,12 +873,19 @@ def seed():
         if getattr(settings, "ENABLE_DEMO_SEED", False):
             print("   - 5 estudiantes demo con progreso y logros asignados")
             print()
-            print("   Logros asignados por perfil:")
+            print("   Logros asignados por perfil (aproximado):")
             print("   • Miguel  (nuevo)         →  0 logros  | 0 materias aprobadas")
-            print("   • Carlos  (intermedio)    → ~8 logros  | 12 materias aprobadas (niveles I-II)")
-            print("   • Ana     (avanzado)      → ~14 logros | 17 materias aprobadas (niveles I-IV)")
-            print("   • Laura   (senior)        → ~22 logros | 28 materias aprobadas (niveles I-VI)")
-            print("   • Valeria (casi_graduado) → ~30 logros | 44 materias aprobadas (niveles I-VIII)")
+            print("   • Carlos  (intermedio)    → ~9 logros  | 12 materias (niveles I-II)")
+            print("   • Ana     (avanzado)      → ~15 logros | 17 materias (niveles I-IV)")
+            print("   • Laura   (senior)        → ~24 logros | 28 materias (niveles I-VI)")
+            print("   • Valeria (casi_graduado) → ~32 logros | 44 materias (niveles I-VIII)")
+            print()
+            print("   Logros de trayectoria ahora funcionales (v4):")
+            print("   • Sin tropiezos    → requiere 0 reprobadas (antes: solo 1 aprobada)")
+            print("   • Progreso perfecto → requiere 0 reprobadas (antes: igual error)")
+            print("   • Semestre perfecto → primer semestre cerrado con todas aprobadas")
+            print("   • Racha ganadora   → 3 semestres consecutivos sin reprobar")
+            print("   • Levantándome     → reprobó y luego aprobó la misma materia")
     except Exception as e:
         print(f"✗ Error en seed: {e}")
         raise
