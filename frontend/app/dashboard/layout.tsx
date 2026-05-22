@@ -1,5 +1,13 @@
 "use client";
 
+/**
+ * Layout del dashboard.
+ * Cambios respecto a la versión anterior:
+ *  - "Editar Perfil" → "Perfil"  (ícono: User)
+ *  - "Ver Malla"     → "Ruta Académica"  (ícono: Map)
+ * El resto de la lógica y estilos permanece idéntico.
+ */
+
 import { useState } from "react";
 import { Map } from "lucide-react";
 import Link from "next/link";
@@ -20,13 +28,13 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
 
   const navigation = [
     {
-      name: "Editar Perfil",
+      name: "Perfil", // ← era "Editar Perfil"
       href: "/dashboard/perfil",
       icon: User,
       active: pathname === "/dashboard/perfil",
     },
     {
-      name: "Ver Malla",
+      name: "Ruta Académica", // ← era "Ver Malla"
       href: "/dashboard/malla",
       icon: Grid3X3,
       active: pathname === "/dashboard/malla",
@@ -36,12 +44,6 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
       href: "/dashboard/quests",
       icon: Map,
       active: pathname === "/dashboard/quests",
-    },
-    {
-      name: "Ver Logros",
-      href: "/dashboard/logros",
-      icon: Trophy,
-      active: pathname === "/dashboard/logros",
     },
   ];
 

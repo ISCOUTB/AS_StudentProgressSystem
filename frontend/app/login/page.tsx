@@ -1,62 +1,62 @@
-"use client"
+"use client";
 
-import { useState } from "react"
-import { useRouter } from "next/navigation"
-import Image from "next/image"
-import Link from "next/link"
-import { Mail, Lock, Eye, EyeOff, ArrowRight } from "lucide-react"
+import { useState } from "react";
+import { useRouter } from "next/navigation";
+import Image from "next/image";
+import Link from "next/link";
+import { Mail, Lock, Eye, EyeOff, ArrowRight } from "lucide-react";
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"
+const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
 export default function LoginPage() {
-  const router = useRouter()
-  const [email, setEmail] = useState("")
-  const [password, setPassword] = useState("")
-  const [showPassword, setShowPassword] = useState(false)
-  const [rememberMe, setRememberMe] = useState(false)
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState("")
+  const router = useRouter();
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [rememberMe, setRememberMe] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
 
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setError("")
-    setLoading(true)
+    e.preventDefault();
+    setError("");
+    setLoading(true);
 
     try {
       // OAuth2PasswordRequestForm expects x-www-form-urlencoded
       // with fields "username" and "password"
-      const body = new URLSearchParams()
-      body.append("username", email)
-      body.append("password", password)
+      const body = new URLSearchParams();
+      body.append("username", email);
+      body.append("password", password);
 
       const res = await fetch(`${API_URL}/login`, {
         method: "POST",
         headers: { "Content-Type": "application/x-www-form-urlencoded" },
         body: body.toString(),
-      })
+      });
 
       if (!res.ok) {
-        const data = await res.json()
-        setError(data.detail || "Credenciales incorrectas")
-        return
+        const data = await res.json();
+        setError(data.detail || "Credenciales incorrectas");
+        return;
       }
 
-      const data = await res.json()
-      localStorage.setItem("sps_token", data.access_token)
+      const data = await res.json();
+      localStorage.setItem("sps_token", data.access_token);
 
       if (rememberMe) {
-        localStorage.setItem("sps_email", email)
+        localStorage.setItem("sps_email", email);
       } else {
-        localStorage.removeItem("sps_email")
+        localStorage.removeItem("sps_email");
       }
 
-      router.push("/dashboard/logros")
+      router.push("/dashboard/perfil");
     } catch {
-      setError("No se pudo conectar con el servidor. Intenta de nuevo.")
+      setError("No se pudo conectar con el servidor. Intenta de nuevo.");
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }
+  };
 
   return (
     <main className="relative min-h-screen w-full overflow-hidden">
@@ -103,7 +103,9 @@ export default function LoginPage() {
                 </p>
 
                 <div className="mb-8 flex items-center gap-4">
-                  <span className="font-semibold text-[#1BB9EB]">Iniciar sesión</span>
+                  <span className="font-semibold text-[#1BB9EB]">
+                    Iniciar sesión
+                  </span>
                   <div className="h-px flex-1 bg-[#1BB9EB]/30" />
                   <div className="h-3 w-3 rounded-full bg-[#1BB9EB]" />
                 </div>
@@ -127,7 +129,10 @@ export default function LoginPage() {
                         <input
                           type="email"
                           value={email}
-                          onChange={(e) => { setEmail(e.target.value); setError("") }}
+                          onChange={(e) => {
+                            setEmail(e.target.value);
+                            setError("");
+                          }}
                           placeholder="usuario@utb.edu.co"
                           required
                           className="w-full bg-transparent text-[#1a1a2e] placeholder-[#1a1a2e]/40 outline-none"
@@ -148,7 +153,10 @@ export default function LoginPage() {
                           <input
                             type={showPassword ? "text" : "password"}
                             value={password}
-                            onChange={(e) => { setPassword(e.target.value); setError("") }}
+                            onChange={(e) => {
+                              setPassword(e.target.value);
+                              setError("");
+                            }}
                             placeholder="••••••••"
                             required
                             className="w-full bg-transparent text-[#1a1a2e] placeholder-[#1a1a2e]/40 outline-none"
@@ -158,7 +166,11 @@ export default function LoginPage() {
                             onClick={() => setShowPassword(!showPassword)}
                             className="text-[#1a1a2e]/40 hover:text-[#1a1a2e]"
                           >
-                            {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                            {showPassword ? (
+                              <EyeOff className="h-5 w-5" />
+                            ) : (
+                              <Eye className="h-5 w-5" />
+                            )}
                           </button>
                         </div>
                       </div>
@@ -174,9 +186,14 @@ export default function LoginPage() {
                         onChange={(e) => setRememberMe(e.target.checked)}
                         className="h-4 w-4 rounded border-gray-300 text-[#1BB9EB] focus:ring-[#1BB9EB]"
                       />
-                      <span className="text-sm text-[#1a1a2e]/70">Recordarme</span>
+                      <span className="text-sm text-[#1a1a2e]/70">
+                        Recordarme
+                      </span>
                     </label>
-                    <Link href="#" className="text-sm font-medium text-[#1BB9EB] hover:underline">
+                    <Link
+                      href="#"
+                      className="text-sm font-medium text-[#1BB9EB] hover:underline"
+                    >
                       ¿Olvidaste tu contraseña?
                     </Link>
                   </div>
@@ -189,9 +206,24 @@ export default function LoginPage() {
                   >
                     {loading ? (
                       <>
-                        <svg className="h-5 w-5 animate-spin" viewBox="0 0 24 24" fill="none">
-                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4l3-3-3-3v4a8 8 0 00-8 8h4z" />
+                        <svg
+                          className="h-5 w-5 animate-spin"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                        >
+                          <circle
+                            className="opacity-25"
+                            cx="12"
+                            cy="12"
+                            r="10"
+                            stroke="currentColor"
+                            strokeWidth="4"
+                          />
+                          <path
+                            className="opacity-75"
+                            fill="currentColor"
+                            d="M4 12a8 8 0 018-8v4l3-3-3-3v4a8 8 0 00-8 8h4z"
+                          />
                         </svg>
                         Verificando...
                       </>
@@ -214,5 +246,5 @@ export default function LoginPage() {
         </div>
       </div>
     </main>
-  )
+  );
 }
