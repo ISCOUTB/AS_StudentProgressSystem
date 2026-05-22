@@ -1,97 +1,790 @@
-@import 'tailwindcss';
-@import 'tw-animate-css';
+@import "tailwindcss";
+@import "tw-animate-css";
 
 @custom-variant dark (&:is(.dark *));
 
+/* ═══════════════════════════════════════════════════════════
+   UTB × MARATHON — DESIGN SYSTEM TOKENS
+   Paleta institucional + lenguaje visual sci-fi táctico
+   ═══════════════════════════════════════════════════════════ */
+
 :root {
-  --background: oklch(0.95 0.005 240);
-  --foreground: oklch(0.2 0.02 240);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.2 0.02 240);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.2 0.02 240);
-  --primary: oklch(0.7 0.15 180);
-  --primary-foreground: oklch(1 0 0);
-  --secondary: oklch(0.75 0.2 125);
-  --secondary-foreground: oklch(0.2 0.02 240);
-  --muted: oklch(0.95 0.01 240);
-  --muted-foreground: oklch(0.5 0.02 240);
-  --accent: oklch(0.75 0.2 125);
-  --accent-foreground: oklch(0.2 0.02 240);
-  --destructive: oklch(0.577 0.245 27.325);
-  --destructive-foreground: oklch(0.577 0.245 27.325);
-  --border: oklch(0.88 0.01 240);
-  --input: oklch(0.92 0.01 240);
-  --ring: oklch(0.7 0.15 180);
-  --radius: 0.75rem;
-  
-  /* UTB Brand Colors */
-  --utb-cyan: #1BB9EB;
-  --utb-lime: #C2F542;
-  --utb-dark: #1a1a2e;
-  --utb-green: #00C853;
-  --utb-gray: #e8e8e8;
+  /* ── UTB Brand Palette ────────────────────────────────── */
+  --utb-emerald: #64ed2a; /* Verde Esmeralda UTB */
+  --utb-savio: #12d191; /* Verde SAVIO */
+  --utb-green: #117c4a; /* Verde UTB */
+  --utb-cyan: #1bb9eb; /* Celeste UTB */
+  --utb-aqua: #00a3a1; /* Aguamarina SAVIO */
+  --utb-blue: #091ecf; /* Azul UTB */
+  --utb-white: #ffffff;
+  --utb-black: #0f0f0f;
+
+  /* ── Surface system (light mode, casi blanco técnico) ─── */
+  --surface-0: #f5f7fa; /* fondo de página */
+  --surface-1: #ffffff; /* card nivel 1 */
+  --surface-2: #eef1f6; /* card nivel 2 / inner */
+  --surface-3: #e3e8f0; /* bordes estructurales */
+  --surface-4: #cdd5e0; /* divisores internos */
+
+  /* ── Text hierarchy ───────────────────────────────────── */
+  --text-primary: #0a0e1a;
+  --text-secondary: #3a4560;
+  --text-muted: #7a8ba8;
+  --text-accent: var(--utb-cyan);
+  --text-em: var(--utb-emerald);
+
+  /* ── HUD accent lines ─────────────────────────────────── */
+  --hud-line: rgba(27, 185, 235, 0.25);
+  --hud-line-em: rgba(100, 237, 42, 0.35);
+  --hud-glow-cyan: 0 0 12px rgba(27, 185, 235, 0.2);
+  --hud-glow-green: 0 0 12px rgba(100, 237, 42, 0.18);
+
+  /* ── Tier colors (achievement rarity) ────────────────── */
+  --tier-common: #7a8ba8;
+  --tier-rare: #1bb9eb;
+  --tier-epic: #7c3aed;
+  --tier-legendary: #f59e0b;
+
+  /* ── Geometry tokens ──────────────────────────────────── */
+  --clip-corner: polygon(
+    8px 0%,
+    100% 0%,
+    100% calc(100% - 8px),
+    calc(100% - 8px) 100%,
+    0% 100%,
+    0% 8px
+  );
+  --clip-corner-lg: polygon(
+    16px 0%,
+    100% 0%,
+    100% calc(100% - 16px),
+    calc(100% - 16px) 100%,
+    0% 100%,
+    0% 16px
+  );
+  --clip-corner-sm: polygon(
+    5px 0%,
+    100% 0%,
+    100% calc(100% - 5px),
+    calc(100% - 5px) 100%,
+    0% 100%,
+    0% 5px
+  );
+  --clip-slash-r: polygon(
+    0 0,
+    calc(100% - 12px) 0,
+    100% 12px,
+    100% 100%,
+    12px 100%,
+    0 calc(100% - 12px)
+  );
+
+  /* ── Typography ───────────────────────────────────────── */
+  --font-display: var(--font-exo);
+  --font-body: var(--font-rajdhani);
+  --font-mono: var(--font-mono-tech);
+  /* ── Spacing & radius ─────────────────────────────────── */
+  --radius: 0px; /* todo angular por defecto */
+  --radius-sm: 2px;
+  --gap-module: 1.5rem;
+
+  /* Shadcn compat */
+  --background: var(--surface-0);
+  --foreground: var(--text-primary);
+  --card: var(--surface-1);
+  --card-foreground: var(--text-primary);
+  --border: var(--surface-3);
+  --input: var(--surface-2);
+  --ring: var(--utb-cyan);
+  --primary: var(--utb-cyan);
+  --primary-foreground: #ffffff;
+  --secondary: var(--surface-2);
+  --secondary-foreground: var(--text-secondary);
+  --muted: var(--surface-2);
+  --muted-foreground: var(--text-muted);
+  --destructive: #dc2626;
+  --destructive-foreground: #ffffff;
+  --popover: var(--surface-1);
+  --popover-foreground: var(--text-primary);
+  --accent: var(--surface-2);
+  --accent-foreground: var(--text-primary);
 }
 
 @theme inline {
-  --font-sans: 'Geist', 'Geist Fallback', system-ui, sans-serif;
-  --font-mono: 'Geist Mono', 'Geist Mono Fallback', monospace;
+  --font-sans: var(--font-body);
+  --font-mono: var(--font-mono);
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --color-card: var(--card);
-  --color-card-foreground: var(--card-foreground);
-  --color-popover: var(--popover);
-  --color-popover-foreground: var(--popover-foreground);
-  --color-primary: var(--primary);
-  --color-primary-foreground: var(--primary-foreground);
-  --color-secondary: var(--secondary);
-  --color-secondary-foreground: var(--secondary-foreground);
-  --color-muted: var(--muted);
-  --color-muted-foreground: var(--muted-foreground);
-  --color-accent: var(--accent);
-  --color-accent-foreground: var(--accent-foreground);
-  --color-destructive: var(--destructive);
-  --color-destructive-foreground: var(--destructive-foreground);
   --color-border: var(--border);
   --color-input: var(--input);
   --color-ring: var(--ring);
-  --radius-sm: calc(var(--radius) - 4px);
-  --radius-md: calc(var(--radius) - 2px);
-  --radius-lg: var(--radius);
-  --radius-xl: calc(var(--radius) + 4px);
-  
-  /* UTB Custom Colors */
-  --color-utb-cyan: var(--utb-cyan);
-  --color-utb-lime: var(--utb-lime);
-  --color-utb-dark: var(--utb-dark);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --radius-sm: 2px;
+  --radius-md: 2px;
+  --radius-lg: 4px;
+  --radius-xl: 4px;
+
+  /* Custom color tokens for Tailwind */
+  --color-utb-emerald: var(--utb-emerald);
+  --color-utb-savio: var(--utb-savio);
   --color-utb-green: var(--utb-green);
-  --color-utb-gray: var(--utb-gray);
+  --color-utb-cyan: var(--utb-cyan);
+  --color-utb-aqua: var(--utb-aqua);
+  --color-utb-blue: var(--utb-blue);
+  --color-surface-0: var(--surface-0);
+  --color-surface-1: var(--surface-1);
+  --color-surface-2: var(--surface-2);
+  --color-surface-3: var(--surface-3);
+  --color-text-primary: var(--text-primary);
+  --color-text-secondary: var(--text-secondary);
+  --color-text-muted: var(--text-muted);
 }
 
+/* ─── Base reset ─────────────────────────────────────────── */
 @layer base {
   * {
     @apply border-border outline-ring/50;
+    box-sizing: border-box;
   }
+
+  html {
+    font-family: var(--font-body);
+    background-color: var(--surface-0);
+    color: var(--text-primary);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
   body {
     @apply bg-background text-foreground;
+    font-family: var(--font-body);
+  }
+
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    font-family: var(--font-display);
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    color: var(--text-primary);
+  }
+
+  code,
+  kbd,
+  pre,
+  samp,
+  .mono {
+    font-family: var(--font-mono);
   }
 }
 
-/* Custom scrollbar */
+/* ─── HUD / Marathon Geometric Components ──────────────── */
+@layer components {
+  /* ── Panel base: fondo con esquina cortada ────────────── */
+  .hud-panel {
+    background: var(--surface-1);
+    clip-path: var(--clip-corner);
+    border: 1px solid var(--surface-3);
+    position: relative;
+  }
+
+  .hud-panel-lg {
+    background: var(--surface-1);
+    clip-path: var(--clip-corner-lg);
+    border: 1px solid var(--surface-3);
+    position: relative;
+  }
+
+  /* ── Panel con línea de acento superior ──────────────── */
+  .hud-panel::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 2px;
+    background: linear-gradient(
+      90deg,
+      var(--utb-cyan),
+      var(--utb-emerald),
+      transparent
+    );
+    z-index: 1;
+  }
+
+  /* ── Tarjeta de logro geométrica ─────────────────────── */
+  .achievement-card {
+    position: relative;
+    background: var(--surface-1);
+    clip-path: var(--clip-corner);
+    border: 1px solid var(--surface-3);
+    padding: 0.875rem;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    overflow: hidden;
+  }
+
+  .achievement-card::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 1px;
+    background: linear-gradient(
+      90deg,
+      transparent,
+      var(--utb-cyan) 40%,
+      transparent
+    );
+    opacity: 0;
+    transition: opacity 0.3s ease;
+  }
+
+  .achievement-card::after {
+    content: "";
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 32px;
+    height: 1px;
+    background: var(--utb-emerald);
+    opacity: 0;
+    transition: all 0.3s ease;
+  }
+
+  .achievement-card:hover {
+    border-color: var(--utb-cyan);
+    transform: translateY(-1px);
+    box-shadow: var(--hud-glow-cyan);
+  }
+
+  .achievement-card:hover::before,
+  .achievement-card:hover::after {
+    opacity: 1;
+  }
+
+  .achievement-card:hover::after {
+    width: 64px;
+  }
+
+  /* ── Logro bloqueado ──────────────────────────────────── */
+  .achievement-card.locked {
+    opacity: 0.42;
+    filter: grayscale(0.7);
+    border-color: var(--surface-3);
+  }
+
+  .achievement-card.locked:hover {
+    opacity: 0.55;
+    filter: grayscale(0.5);
+    transform: none;
+    box-shadow: none;
+    border-color: var(--surface-3);
+  }
+
+  /* ── Tier badges ─────────────────────────────────────── */
+  .tier-badge {
+    font-family: var(--font-mono);
+    font-size: 9px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    clip-path: var(--clip-corner-sm);
+    padding: 2px 6px;
+  }
+
+  .tier-common {
+    background: rgba(122, 139, 168, 0.12);
+    color: var(--tier-common);
+    border: 1px solid rgba(122, 139, 168, 0.25);
+  }
+  .tier-rare {
+    background: rgba(27, 185, 235, 0.1);
+    color: var(--tier-rare);
+    border: 1px solid rgba(27, 185, 235, 0.3);
+  }
+  .tier-epic {
+    background: rgba(124, 58, 237, 0.1);
+    color: var(--tier-epic);
+    border: 1px solid rgba(124, 58, 237, 0.3);
+  }
+  .tier-legendary {
+    background: rgba(245, 158, 11, 0.1);
+    color: var(--tier-legendary);
+    border: 1px solid rgba(245, 158, 11, 0.35);
+  }
+
+  /* ── Legendary shimmer ───────────────────────────────── */
+  .achievement-card.legendary {
+    border-color: rgba(245, 158, 11, 0.4);
+  }
+
+  .achievement-card.legendary:hover {
+    border-color: rgba(245, 158, 11, 0.7);
+    box-shadow: 0 0 16px rgba(245, 158, 11, 0.15);
+  }
+
+  /* ── Stat card con corte diagonal ────────────────────── */
+  .stat-card {
+    position: relative;
+    background: var(--surface-1);
+    border: 1px solid var(--surface-3);
+    clip-path: var(--clip-corner);
+    padding: 1rem;
+    overflow: hidden;
+    transition: box-shadow 0.2s ease;
+  }
+
+  .stat-card:hover {
+    box-shadow: var(--hud-glow-cyan);
+  }
+
+  /* Accent strip lateral */
+  .stat-card .stat-accent-strip {
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 2px;
+  }
+
+  /* ── HUD label (texto mono técnico pequeño) ──────────── */
+  .hud-label {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+  }
+
+  /* ── HUD value (número grande) ───────────────────────── */
+  .hud-value {
+    font-family: var(--font-display);
+    font-weight: 800;
+    letter-spacing: -0.01em;
+    color: var(--text-primary);
+    line-height: 1;
+  }
+
+  /* ── Botón principal Marathon-style ──────────────────── */
+  .btn-hud {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-family: var(--font-display);
+    font-weight: 600;
+    font-size: 0.75rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    background: transparent;
+    color: var(--utb-cyan);
+    border: 1px solid var(--utb-cyan);
+    clip-path: var(--clip-corner-sm);
+    padding: 0.5rem 1rem;
+    transition: all 0.18s ease;
+    cursor: pointer;
+  }
+
+  .btn-hud:hover {
+    background: var(--utb-cyan);
+    color: var(--utb-black);
+    box-shadow: var(--hud-glow-cyan);
+  }
+
+  .btn-hud-solid {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-family: var(--font-display);
+    font-weight: 700;
+    font-size: 0.75rem;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    background: var(--utb-cyan);
+    color: var(--utb-black);
+    border: 1px solid var(--utb-cyan);
+    clip-path: var(--clip-corner-sm);
+    padding: 0.5rem 1.25rem;
+    transition: all 0.18s ease;
+    cursor: pointer;
+  }
+
+  .btn-hud-solid:hover {
+    background: var(--utb-emerald);
+    border-color: var(--utb-emerald);
+    box-shadow: var(--hud-glow-green);
+  }
+
+  /* ── Progress bar técnica ────────────────────────────── */
+  .hud-progress {
+    position: relative;
+    height: 3px;
+    background: var(--surface-3);
+    overflow: visible;
+  }
+
+  .hud-progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--utb-cyan), var(--utb-emerald));
+    transition: width 0.7s cubic-bezier(0.4, 0, 0.2, 1);
+    position: relative;
+  }
+
+  .hud-progress-fill::after {
+    content: "";
+    position: absolute;
+    right: -1px;
+    top: -3px;
+    width: 2px;
+    height: 9px;
+    background: var(--utb-emerald);
+    box-shadow: 0 0 6px var(--utb-emerald);
+  }
+
+  /* ── Decorative grid overlay ─────────────────────────── */
+  .hud-grid-bg {
+    position: relative;
+  }
+
+  .hud-grid-bg::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(27, 185, 235, 0.04) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(27, 185, 235, 0.04) 1px, transparent 1px);
+    background-size: 20px 20px;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  /* ── Decorative corner bracket ───────────────────────── */
+  .hud-bracket {
+    position: absolute;
+    width: 10px;
+    height: 10px;
+    border-color: var(--utb-cyan);
+    border-style: solid;
+    opacity: 0.5;
+  }
+
+  .hud-bracket.tl {
+    top: 4px;
+    left: 4px;
+    border-width: 1px 0 0 1px;
+  }
+  .hud-bracket.tr {
+    top: 4px;
+    right: 4px;
+    border-width: 1px 1px 0 0;
+  }
+  .hud-bracket.bl {
+    bottom: 4px;
+    left: 4px;
+    border-width: 0 0 1px 1px;
+  }
+  .hud-bracket.br {
+    bottom: 4px;
+    right: 4px;
+    border-width: 0 1px 1px 0;
+  }
+
+  /* ── Section divider con línea técnica ───────────────── */
+  .hud-divider {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin: 0.5rem 0;
+  }
+
+  .hud-divider-label {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+
+  .hud-divider-line {
+    flex: 1;
+    height: 1px;
+    background: linear-gradient(90deg, var(--utb-cyan) 0%, transparent 100%);
+    opacity: 0.3;
+  }
+
+  /* ── Navigation item ─────────────────────────────────── */
+  .nav-item {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.625rem 1rem;
+    font-family: var(--font-display);
+    font-size: 0.75rem;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--text-secondary);
+    border: 1px solid transparent;
+    clip-path: var(--clip-corner-sm);
+    transition: all 0.15s ease;
+    position: relative;
+    background: transparent;
+    cursor: pointer;
+    text-decoration: none;
+  }
+
+  .nav-item:hover {
+    color: var(--utb-cyan);
+    border-color: rgba(27, 185, 235, 0.2);
+    background: rgba(27, 185, 235, 0.05);
+  }
+
+  .nav-item.active {
+    color: var(--utb-black);
+    background: var(--utb-cyan);
+    border-color: var(--utb-cyan);
+  }
+
+  .nav-item.active::after {
+    content: "";
+    position: absolute;
+    right: -4px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 4px;
+    height: 16px;
+    background: var(--utb-emerald);
+    clip-path: polygon(0 0, 100% 4px, 100% calc(100% - 4px), 0 100%);
+  }
+
+  /* ── Sidebar ─────────────────────────────────────────── */
+  .hud-sidebar {
+    background: var(--surface-1);
+    border-right: 1px solid var(--surface-3);
+    position: relative;
+  }
+
+  .hud-sidebar::after {
+    content: "";
+    position: absolute;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    width: 1px;
+    background: linear-gradient(
+      180deg,
+      var(--utb-cyan) 0%,
+      transparent 40%,
+      transparent 60%,
+      var(--utb-emerald) 100%
+    );
+    opacity: 0.3;
+  }
+
+  /* ── Profile hex avatar ──────────────────────────────── */
+  .hex-avatar {
+    clip-path: polygon(50% 0%, 93% 25%, 93% 75%, 50% 100%, 7% 75%, 7% 25%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(135deg, var(--utb-cyan), var(--utb-savio));
+    font-family: var(--font-display);
+    font-weight: 900;
+    color: white;
+  }
+
+  /* ── Filter tab ──────────────────────────────────────── */
+  .filter-tab {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    padding: 0.35rem 0.75rem;
+    border: 1px solid var(--surface-3);
+    background: transparent;
+    color: var(--text-muted);
+    clip-path: var(--clip-corner-sm);
+    cursor: pointer;
+    transition: all 0.15s ease;
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+
+  .filter-tab:hover {
+    border-color: var(--utb-cyan);
+    color: var(--utb-cyan);
+  }
+
+  .filter-tab.active {
+    background: var(--text-primary);
+    border-color: var(--text-primary);
+    color: var(--surface-0);
+  }
+
+  /* ── Skeleton ────────────────────────────────────────── */
+  .hud-skeleton {
+    background: linear-gradient(
+      90deg,
+      var(--surface-2) 25%,
+      var(--surface-3) 50%,
+      var(--surface-2) 75%
+    );
+    background-size: 200% 100%;
+    animation: hud-shimmer 1.5s infinite;
+    clip-path: var(--clip-corner-sm);
+  }
+
+  @keyframes hud-shimmer {
+    0% {
+      background-position: 200% 0;
+    }
+    100% {
+      background-position: -200% 0;
+    }
+  }
+
+  /* ── Title badge ─────────────────────────────────────── */
+  .title-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.375rem;
+    font-family: var(--font-mono);
+    font-size: 10px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    clip-path: var(--clip-corner-sm);
+    padding: 0.3rem 0.65rem;
+    border: 1px solid;
+    transition: transform 0.15s ease;
+  }
+
+  .title-badge:hover {
+    transform: translateY(-1px);
+  }
+
+  /* ── Next unlock row ─────────────────────────────────── */
+  .unlock-row {
+    position: relative;
+    padding: 0.75rem;
+    border: 1px solid var(--surface-3);
+    clip-path: var(--clip-corner-sm);
+    background: var(--surface-1);
+  }
+
+  /* ── Rank badge pill ─────────────────────────────────── */
+  .rank-pill {
+    font-family: var(--font-mono);
+    font-size: 9px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    border: 1px solid currentColor;
+    padding: 2px 8px;
+    clip-path: var(--clip-corner-sm);
+  }
+}
+
+/* ─── Utilities ──────────────────────────────────────────── */
+@layer utilities {
+  .font-display {
+    font-family: var(--font-display);
+  }
+  .font-body {
+    font-family: var(--font-body);
+  }
+  .font-mono {
+    font-family: var(--font-mono);
+  }
+
+  .clip-corner {
+    clip-path: var(--clip-corner);
+  }
+  .clip-corner-lg {
+    clip-path: var(--clip-corner-lg);
+  }
+  .clip-corner-sm {
+    clip-path: var(--clip-corner-sm);
+  }
+  .clip-slash-r {
+    clip-path: var(--clip-slash-r);
+  }
+
+  .text-utb-cyan {
+    color: var(--utb-cyan);
+  }
+  .text-utb-emerald {
+    color: var(--utb-emerald);
+  }
+  .text-utb-savio {
+    color: var(--utb-savio);
+  }
+  .text-utb-green {
+    color: var(--utb-green);
+  }
+  .text-utb-blue {
+    color: var(--utb-blue);
+  }
+  .text-muted-hud {
+    color: var(--text-muted);
+  }
+
+  .bg-utb-cyan {
+    background-color: var(--utb-cyan);
+  }
+  .bg-utb-emerald {
+    background-color: var(--utb-emerald);
+  }
+  .bg-utb-savio {
+    background-color: var(--utb-savio);
+  }
+  .bg-surface-0 {
+    background-color: var(--surface-0);
+  }
+  .bg-surface-1 {
+    background-color: var(--surface-1);
+  }
+  .bg-surface-2 {
+    background-color: var(--surface-2);
+  }
+
+  .border-hud {
+    border-color: var(--surface-3);
+  }
+  .border-cyan {
+    border-color: var(--utb-cyan);
+  }
+  .border-emerald {
+    border-color: var(--utb-emerald);
+  }
+
+  .tracking-hud {
+    letter-spacing: 0.1em;
+  }
+  .tracking-hud-wide {
+    letter-spacing: 0.18em;
+  }
+  .uppercase-hud {
+    text-transform: uppercase;
+  }
+}
+
+/* ─── Scrollbar ──────────────────────────────────────────── */
 ::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
+  width: 4px;
+  height: 4px;
 }
-
 ::-webkit-scrollbar-track {
-  background: transparent;
+  background: var(--surface-2);
 }
-
 ::-webkit-scrollbar-thumb {
-  background: #c1c1c1;
-  border-radius: 4px;
+  background: var(--utb-cyan);
+  opacity: 0.5;
 }
-
 ::-webkit-scrollbar-thumb:hover {
-  background: #a8a8a8;
+  background: var(--utb-emerald);
 }

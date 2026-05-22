@@ -1,18 +1,19 @@
 "use client";
 
-/**
- * Layout del dashboard.
- * Cambios respecto a la versión anterior:
- *  - "Editar Perfil" → "Perfil"  (ícono: User)
- *  - "Ver Malla"     → "Ruta Académica"  (ícono: Map)
- * El resto de la lógica y estilos permanece idéntico.
- */
-
 import { useState } from "react";
-import { Map } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { User, Grid3X3, Trophy, LogOut, Menu, X } from "lucide-react";
+import {
+  User,
+  Grid3X3,
+  Trophy,
+  LogOut,
+  Menu,
+  X,
+  Map,
+  ChevronRight,
+  Activity,
+} from "lucide-react";
 import Image from "next/image";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 
@@ -27,24 +28,14 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
   const { user, displayName, loading } = useCurrentUser();
 
   const navigation = [
+    { name: "Perfil", href: "/dashboard/perfil", icon: User, id: "perfil" },
     {
-      name: "Perfil", // ← era "Editar Perfil"
-      href: "/dashboard/perfil",
-      icon: User,
-      active: pathname === "/dashboard/perfil",
-    },
-    {
-      name: "Ruta Académica", // ← era "Ver Malla"
+      name: "Ruta Académica",
       href: "/dashboard/malla",
       icon: Grid3X3,
-      active: pathname === "/dashboard/malla",
+      id: "malla",
     },
-    {
-      name: "Quests",
-      href: "/dashboard/quests",
-      icon: Map,
-      active: pathname === "/dashboard/quests",
-    },
+    { name: "Quests", href: "/dashboard/quests", icon: Map, id: "quests" },
   ];
 
   const handleLogout = () => {
@@ -53,122 +44,246 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
   };
 
   return (
-    <div className="relative flex min-h-screen">
+    <div
+      className="relative flex min-h-screen"
+      style={{ backgroundColor: "var(--surface-0)" }}
+    >
+      {/* ─── Background fondo ──────────────────────────────── */}
       <div
-        className="fixed inset-0 bg-cover bg-center bg-no-repeat"
+        className="fixed inset-0 bg-cover bg-center bg-no-repeat opacity-30"
         style={{ backgroundImage: "url('/images/fondo-dashboard.png')" }}
       />
 
+      {/* ─── Sidebar HUD ───────────────────────────────────── */}
       <aside
-        className={`fixed left-0 top-0 z-40 flex h-screen flex-col shadow-lg transition-all duration-300 ${collapsed ? "w-20" : "w-64"}`}
+        className={`hud-sidebar fixed left-0 top-0 z-40 flex h-screen flex-col transition-all duration-300 ${collapsed ? "w-16" : "w-60"}`}
       >
-        <div className="absolute inset-0 bg-white/95 backdrop-blur-sm" />
+        {/* Top strip accent */}
+        <div
+          className="absolute top-0 left-0 right-0 h-[2px]"
+          style={{
+            background:
+              "linear-gradient(90deg, var(--utb-cyan), var(--utb-emerald))",
+          }}
+        />
 
-        <div className="pointer-events-none absolute bottom-16 left-0 z-0 w-full overflow-hidden px-2">
-          <Image
-            src="/images/utb-logo.svg"
-            alt="UTB Logo"
-            width={200}
-            height={200}
-            className={`opacity-90 transition-all duration-300 ${collapsed ? "h-16 w-16" : "h-48 w-48"}`}
-          />
-        </div>
-
+        {/* Sidebar content */}
         <div className="relative z-10 flex h-full flex-col">
-          <div className="flex items-center justify-end p-4">
+          {/* Logo + toggle */}
+          <div
+            className={`flex items-center border-b p-3 ${collapsed ? "justify-center" : "justify-between"}`}
+            style={{ borderColor: "var(--surface-3)" }}
+          >
+            {!collapsed && (
+              <div className="flex items-center gap-2">
+                <div
+                  className="w-1 h-6 flex-shrink-0"
+                  style={{
+                    background:
+                      "linear-gradient(180deg, var(--utb-cyan), var(--utb-emerald))",
+                  }}
+                />
+                <div>
+                  <p
+                    className="hud-label"
+                    style={{ color: "var(--utb-cyan)", fontSize: "9px" }}
+                  >
+                    UTB // SPS
+                  </p>
+                  <p
+                    className="font-display font-bold text-xs uppercase tracking-widest"
+                    style={{ color: "var(--text-primary)", fontSize: "11px" }}
+                  >
+                    Student Progress
+                  </p>
+                </div>
+              </div>
+            )}
             <button
               onClick={() => setCollapsed(!collapsed)}
-              className="flex h-10 w-10 items-center justify-center rounded-lg bg-white/80 text-[#1a1a2e]/60 shadow-sm transition-colors hover:bg-white hover:text-[#1a1a2e]"
+              className="flex h-7 w-7 items-center justify-center transition-colors"
+              style={{
+                color: "var(--text-muted)",
+                border: "1px solid var(--surface-3)",
+                clipPath: "var(--clip-corner-sm)",
+              }}
             >
               {collapsed ? (
-                <Menu className="h-5 w-5" />
+                <Menu className="h-3.5 w-3.5" />
               ) : (
-                <X className="h-5 w-5" />
+                <X className="h-3.5 w-3.5" />
               )}
             </button>
           </div>
 
-          <div className={`p-6 pt-2 ${collapsed ? "px-4 text-center" : ""}`}>
+          {/* User info */}
+          <div
+            className={`border-b p-3 ${collapsed ? "flex justify-center" : ""}`}
+            style={{ borderColor: "var(--surface-3)" }}
+          >
             {loading ? (
-              <div className="space-y-2">
-                <div
-                  className={`h-4 animate-pulse rounded bg-[#1a1a2e]/10 ${collapsed ? "mx-auto w-8" : "w-28"}`}
-                />
-                {!collapsed && (
-                  <div className="h-3 w-20 animate-pulse rounded bg-[#1a1a2e]/10" />
-                )}
+              <div className="space-y-1.5">
+                <div className="hud-skeleton h-3 w-24" />
+                {!collapsed && <div className="hud-skeleton h-2 w-16" />}
+              </div>
+            ) : collapsed ? (
+              <div className="hex-avatar h-8 w-8 text-xs font-black">
+                {(displayName ?? "?").charAt(0)}
               </div>
             ) : (
-              <>
-                <h2
-                  className={`font-bold text-[#1a1a2e] ${collapsed ? "text-xs" : "text-xl"}`}
-                  title={displayName ?? undefined}
-                >
-                  {collapsed
-                    ? (displayName ?? "—").slice(0, 2)
-                    : (displayName ?? "—")}
-                </h2>
-                {!collapsed && (
-                  <p className="text-xs text-[#1a1a2e]/50">
-                    ID {user?.codigo ?? "—"}
+              <div className="flex items-center gap-2.5">
+                <div className="hex-avatar h-9 w-9 text-sm font-black shrink-0">
+                  {(displayName ?? "?").charAt(0)}
+                </div>
+                <div className="min-w-0">
+                  <p
+                    className="font-display font-bold text-xs uppercase truncate"
+                    style={{
+                      color: "var(--text-primary)",
+                      letterSpacing: "0.05em",
+                    }}
+                  >
+                    {displayName ?? "—"}
                   </p>
-                )}
-              </>
+                  <p className="hud-label truncate" style={{ fontSize: "9px" }}>
+                    ID · {user?.codigo ?? "—"}
+                  </p>
+                </div>
+              </div>
             )}
           </div>
 
-          <nav className="flex-1 space-y-2 px-3">
+          {/* Navigation */}
+          <nav className="flex-1 space-y-1 p-2 overflow-y-auto">
+            {!collapsed && (
+              <div className="hud-divider mb-2 px-1">
+                <span className="hud-divider-label" style={{ fontSize: "9px" }}>
+                  Navigation
+                </span>
+                <div className="hud-divider-line" />
+              </div>
+            )}
             {navigation.map((item) => {
               const Icon = item.icon;
+              const isActive =
+                pathname === item.href ||
+                (item.href !== "/dashboard" && pathname.startsWith(item.href));
               return (
                 <Link
                   key={item.href}
                   href={item.href}
-                  className={`group flex items-center gap-3 rounded-lg px-4 py-3 text-sm font-medium transition-all ${
-                    item.active
-                      ? "bg-[#1BB9EB] text-white shadow-md"
-                      : "bg-white/80 text-[#1a1a2e] shadow-sm hover:bg-[#1BB9EB]/10 hover:text-[#1BB9EB]"
-                  }`}
+                  className={`nav-item ${isActive ? "active" : ""} ${collapsed ? "justify-center px-2" : ""}`}
                 >
-                  <Icon
-                    className={`h-5 w-5 flex-shrink-0 ${item.active ? "text-white" : "text-[#1a1a2e]/70 group-hover:text-[#1BB9EB]"}`}
-                  />
-                  {!collapsed && (
-                    <span className="uppercase tracking-wide">{item.name}</span>
+                  <Icon className="h-4 w-4 flex-shrink-0" />
+                  {!collapsed && <span>{item.name}</span>}
+                  {!collapsed && isActive && (
+                    <ChevronRight className="h-3 w-3 ml-auto opacity-60" />
                   )}
                 </Link>
               );
             })}
           </nav>
 
-          <div className="p-4">
+          {/* UTB logo watermark */}
+          {!collapsed && (
+            <div className="p-3 opacity-20 pointer-events-none">
+              <Image
+                src="/images/utb-logo.svg"
+                alt="UTB"
+                width={80}
+                height={40}
+                className="w-16"
+              />
+            </div>
+          )}
+
+          {/* Logout */}
+          <div
+            className="p-2 border-t"
+            style={{ borderColor: "var(--surface-3)" }}
+          >
             <button
               onClick={handleLogout}
-              className={`flex w-full items-center gap-3 rounded-lg bg-white/80 px-4 py-3 text-sm font-medium text-[#1a1a2e]/70 shadow-sm transition-all hover:bg-red-50 hover:text-red-600 ${collapsed ? "justify-center" : ""}`}
+              className={`nav-item w-full ${collapsed ? "justify-center px-2" : ""}`}
+              style={{ color: "var(--text-muted)" }}
+              onMouseEnter={(e) => {
+                (e.currentTarget as HTMLElement).style.color = "#DC2626";
+                (e.currentTarget as HTMLElement).style.borderColor =
+                  "rgba(220,38,38,0.25)";
+                (e.currentTarget as HTMLElement).style.background =
+                  "rgba(220,38,38,0.05)";
+              }}
+              onMouseLeave={(e) => {
+                (e.currentTarget as HTMLElement).style.color =
+                  "var(--text-muted)";
+                (e.currentTarget as HTMLElement).style.borderColor =
+                  "transparent";
+                (e.currentTarget as HTMLElement).style.background =
+                  "transparent";
+              }}
             >
-              <LogOut className="h-5 w-5 flex-shrink-0" />
-              {!collapsed && (
-                <span className="uppercase tracking-wide">Cerrar Sesión</span>
-              )}
+              <LogOut className="h-4 w-4 flex-shrink-0" />
+              {!collapsed && <span>Cerrar Sesión</span>}
             </button>
           </div>
         </div>
       </aside>
 
+      {/* ─── Main content area ─────────────────────────────── */}
       <main
-        className={`relative z-10 flex-1 transition-all duration-300 ${collapsed ? "ml-20" : "ml-64"}`}
+        className={`relative z-10 flex-1 transition-all duration-300 ${collapsed ? "ml-16" : "ml-60"}`}
       >
-        <header className="flex items-center justify-end px-8 py-4">
-          <div className="flex items-center gap-2 text-xs font-medium tracking-widest text-[#1a1a2e]/60">
-            <span>STUDENT</span>
-            <span className="text-[#1a1a2e]/30">//</span>
-            <span>PROGRESS</span>
-            <span className="text-[#1a1a2e]/30">//</span>
-            <span>SYSTEM</span>
-            <span className="ml-2 h-3 w-3 rounded-sm bg-[#C2F542]" />
+        {/* Top bar */}
+        <header
+          className="sticky top-0 z-30 flex items-center justify-between px-6 py-3"
+          style={{
+            background: "rgba(245,247,250,0.92)",
+            backdropFilter: "blur(12px)",
+            borderBottom: "1px solid var(--surface-3)",
+          }}
+        >
+          {/* Breadcrumb */}
+          <div className="flex items-center gap-2">
+            <Activity
+              className="h-3.5 w-3.5"
+              style={{ color: "var(--utb-cyan)" }}
+            />
+            <span className="hud-label" style={{ color: "var(--text-muted)" }}>
+              dashboard
+            </span>
+            <span className="hud-label" style={{ color: "var(--surface-3)" }}>
+              //
+            </span>
+            <span className="hud-label" style={{ color: "var(--utb-cyan)" }}>
+              {navigation.find((n) => pathname.startsWith(n.href))?.name ?? "—"}
+            </span>
+          </div>
+
+          {/* System tag */}
+          <div className="flex items-center gap-3">
+            <div className="flex items-center gap-1.5">
+              <div
+                className="h-1.5 w-1.5 rounded-full animate-pulse"
+                style={{ background: "var(--utb-emerald)" }}
+              />
+              <span
+                className="hud-label"
+                style={{ color: "var(--text-muted)", fontSize: "9px" }}
+              >
+                SISTEMA ACTIVO
+              </span>
+            </div>
+            <div
+              className="hud-label"
+              style={{ fontSize: "9px", color: "var(--surface-4)" }}
+            >
+              UTB · SPS · v2.0
+            </div>
           </div>
         </header>
-        <div className="px-8 pb-8">{children}</div>
+
+        {/* Page content */}
+        <div className="px-6 py-6">{children}</div>
       </main>
     </div>
   );

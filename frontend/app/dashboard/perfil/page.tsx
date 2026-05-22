@@ -1,21 +1,8 @@
 "use client";
 
 /**
- * /dashboard/perfil — Vista de Perfil Académico
- *
- * Arquitectura:
- *  - ProfileHeader          → nombre, carrera, nivel, avatar hexagonal
- *  - AcademicSummaryBar     → 4 stat-cards horizontales (PGA, créditos, materias, %)
- *  - AchievementsSection    → grid de logros con estado earned/locked + filtros
- *  - TitlesRanksSection     → badges de títulos obtenidos estilo RPG
- *  - NextUnlocksSection     → progreso hacia los 3 logros más cercanos
- *
- * Estado global: todo proviene de useCurrentUser() y useQuestProfile()
- * — sin estado local duplicado, sin prop-drilling.
- *
- * Rendimiento:
- *  - useMemo para derivar listas de logros (earned / locked / near)
- *  - Componentes hoja puros; sin re-renders innecesarios
+ * /dashboard/perfil — Marathon × UTB Design System
+ * Rediseño visual completo. Lógica, hooks y estado sin cambios.
  */
 
 import { useMemo, useState } from "react";
@@ -23,7 +10,6 @@ import Link from "next/link";
 import {
   Award,
   Lock,
-  ArrowRight,
   Zap,
   Shield,
   Star,
@@ -34,15 +20,15 @@ import {
   Trophy,
   Flame,
   Target,
+  ArrowUpRight,
 } from "lucide-react";
 import { useCurrentUser, type ResolvedLogro } from "@/hooks/useCurrentUser";
 import { useQuestProfile } from "@/hooks/useQuestProfile";
 
 // ─────────────────────────────────────────────────────────────────────────────
-// CONSTANTS
+// DESIGN TOKENS (mismo mapa de rareza que antes)
 // ─────────────────────────────────────────────────────────────────────────────
 
-/** Mapea nombres de logros a categorías visuales para darles color/rareza */
 const LOGRO_RARITY: Record<
   string,
   { tier: "common" | "rare" | "epic" | "legendary"; label: string }
@@ -82,46 +68,50 @@ const LOGRO_RARITY: Record<
   "Práctica completada": { tier: "legendary", label: "Legendario" },
 };
 
-const TIER_STYLES = {
-  common: {
-    glow: "shadow-slate-200",
-    border: "border-slate-200",
-    badge: "bg-slate-100 text-slate-600",
-    dot: "bg-slate-400",
-    ring: "ring-slate-200",
+const TITLE_STYLES: Record<
+  string,
+  { bg: string; color: string; border: string }
+> = {
+  Aprendiz: {
+    bg: "rgba(18,209,145,0.08)",
+    color: "var(--utb-savio)",
+    border: "rgba(18,209,145,0.30)",
   },
-  rare: {
-    glow: "shadow-blue-200",
-    border: "border-blue-200",
-    badge: "bg-blue-50 text-blue-600",
-    dot: "bg-blue-400",
-    ring: "ring-blue-200",
+  Desarrollador: {
+    bg: "rgba(27,185,235,0.08)",
+    color: "var(--utb-cyan)",
+    border: "rgba(27,185,235,0.30)",
   },
-  epic: {
-    glow: "shadow-purple-200",
-    border: "border-purple-200",
-    badge: "bg-purple-50 text-purple-600",
-    dot: "bg-purple-400",
-    ring: "ring-purple-200",
+  "Arquitecto del Código": {
+    bg: "rgba(124,58,237,0.08)",
+    color: "#7C3AED",
+    border: "rgba(124,58,237,0.30)",
   },
-  legendary: {
-    glow: "shadow-amber-200",
-    border: "border-amber-300",
-    badge: "bg-amber-50 text-amber-700",
-    dot: "bg-amber-400",
-    ring: "ring-amber-300",
+  "Científico Formado": {
+    bg: "rgba(0,163,161,0.08)",
+    color: "var(--utb-aqua)",
+    border: "rgba(0,163,161,0.30)",
   },
-};
-
-const TITLE_STYLES: Record<string, string> = {
-  Aprendiz: "bg-emerald-50 text-emerald-700 border-emerald-200",
-  Desarrollador: "bg-blue-50 text-blue-700 border-blue-200",
-  "Arquitecto del Código": "bg-purple-50 text-purple-700 border-purple-200",
-  "Científico Formado": "bg-sky-50 text-sky-700 border-sky-200",
-  "Ingeniero de Sistemas": "bg-indigo-50 text-indigo-700 border-indigo-200",
-  "Network Specialist": "bg-cyan-50 text-cyan-700 border-cyan-200",
-  "AI Initiate": "bg-violet-50 text-violet-700 border-violet-200",
-  "Backend Engineer": "bg-orange-50 text-orange-700 border-orange-200",
+  "Ingeniero de Sistemas": {
+    bg: "rgba(9,30,207,0.08)",
+    color: "var(--utb-blue)",
+    border: "rgba(9,30,207,0.30)",
+  },
+  "Network Specialist": {
+    bg: "rgba(27,185,235,0.08)",
+    color: "var(--utb-cyan)",
+    border: "rgba(27,185,235,0.30)",
+  },
+  "AI Initiate": {
+    bg: "rgba(124,58,237,0.08)",
+    color: "#7C3AED",
+    border: "rgba(124,58,237,0.30)",
+  },
+  "Backend Engineer": {
+    bg: "rgba(100,237,42,0.08)",
+    color: "var(--utb-emerald)",
+    border: "rgba(100,237,42,0.30)",
+  },
 };
 
 type FilterTab = "all" | "earned" | "locked" | "rare" | "legendary";
@@ -130,43 +120,54 @@ type FilterTab = "all" | "earned" | "locked" | "rare" | "legendary";
 // PRIMITIVES
 // ─────────────────────────────────────────────────────────────────────────────
 
-function Skeleton({ className }: { className: string }) {
+function HudSkeleton({ className = "" }: { className?: string }) {
   return (
-    <div className={`animate-pulse rounded-lg bg-slate-100 ${className}`} />
+    <div className={`hud-skeleton ${className}`} style={{ height: "1rem" }} />
   );
 }
 
-function GlowBar({
+function HudProgress({
   pct,
-  color = "from-[#1BB9EB] to-[#00C853]",
+  color = "var(--utb-cyan)",
 }: {
   pct: number;
   color?: string;
 }) {
   return (
-    <div className="relative h-1.5 w-full overflow-hidden rounded-full bg-slate-100">
+    <div className="hud-progress w-full">
       <div
-        className={`absolute inset-y-0 left-0 rounded-full bg-gradient-to-r ${color} transition-all duration-700`}
-        style={{ width: `${Math.min(pct, 100)}%` }}
+        className="hud-progress-fill"
+        style={{
+          width: `${Math.min(pct, 100)}%`,
+          background: `linear-gradient(90deg, ${color}, var(--utb-emerald))`,
+        }}
       />
     </div>
+  );
+}
+
+// Número de secuencia técnico estilo HUD
+function SeqNumber({ n }: { n: number }) {
+  return (
+    <span
+      className="font-mono absolute"
+      style={{
+        fontFamily: "var(--font-mono)",
+        fontSize: "8px",
+        color: "var(--surface-3)",
+        top: "6px",
+        right: "8px",
+        letterSpacing: "0.1em",
+      }}
+    >
+      {String(n).padStart(3, "0")}
+    </span>
   );
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
 // PROFILE HEADER
 // ─────────────────────────────────────────────────────────────────────────────
-
-interface ProfileHeaderProps {
-  loading: boolean;
-  fullName: string | null;
-  escuela: string | null;
-  semesterLabel: string | null;
-  porcentaje: number;
-  codigo: string | null;
-  titlesCount: number;
-  earnedCount: number;
-}
 
 function ProfileHeader({
   loading,
@@ -177,130 +178,205 @@ function ProfileHeader({
   codigo,
   titlesCount,
   earnedCount,
-}: ProfileHeaderProps) {
-  /* Derive a visual "rank" from progress */
+}: {
+  loading: boolean;
+  fullName: string | null;
+  escuela: string | null;
+  semesterLabel: string | null;
+  porcentaje: number;
+  codigo: string | null;
+  titlesCount: number;
+  earnedCount: number;
+}) {
   const rank =
     porcentaje >= 90
-      ? { label: "ÉLITE", color: "text-amber-500", icon: "⚡" }
+      ? { label: "ÉLITE", color: "var(--utb-emerald)", code: "S-TIER" }
       : porcentaje >= 70
-        ? { label: "AVANZADO", color: "text-purple-500", icon: "🔮" }
+        ? { label: "AVANZADO", color: "var(--utb-cyan)", code: "A-TIER" }
         : porcentaje >= 40
-          ? { label: "INTERMEDIO", color: "text-blue-500", icon: "🛡️" }
-          : { label: "NOVATO", color: "text-emerald-600", icon: "🌱" };
+          ? { label: "INTERMEDIO", color: "var(--utb-savio)", code: "B-TIER" }
+          : { label: "NOVATO", color: "var(--utb-aqua)", code: "C-TIER" };
 
   return (
-    <div className="relative overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
-      {/* Decorative top strip */}
-      <div className="h-1.5 w-full bg-gradient-to-r from-[#1BB9EB] via-[#C2F542] to-[#00C853]" />
+    <div
+      className="hud-panel-lg relative overflow-hidden hud-grid-bg"
+      style={{ padding: "1.5rem", marginBottom: "0" }}
+    >
+      {/* Corner brackets */}
+      <span className="hud-bracket tl" />
+      <span className="hud-bracket tr" />
+      <span className="hud-bracket bl" />
+      <span className="hud-bracket br" />
 
-      {/* Subtle grid background */}
-      <div
-        className="absolute inset-0 opacity-[0.025]"
-        style={{
-          backgroundImage:
-            "linear-gradient(#1a1a2e 1px, transparent 1px), linear-gradient(90deg, #1a1a2e 1px, transparent 1px)",
-          backgroundSize: "24px 24px",
-        }}
-      />
-
-      <div className="relative flex flex-col gap-6 p-6 sm:flex-row sm:items-center sm:gap-8">
-        {/* Hexagonal avatar */}
-        <div className="flex shrink-0 flex-col items-center gap-2">
+      <div className="relative z-10 flex flex-col gap-5 sm:flex-row sm:items-center sm:gap-8">
+        {/* Hexagonal avatar + rank */}
+        <div className="flex flex-col items-center gap-2 flex-shrink-0">
           <div className="relative">
-            {/* Hex clip using clip-path */}
             <div
-              className="flex h-24 w-24 items-center justify-center bg-gradient-to-br from-[#1BB9EB] to-[#00C853] text-4xl font-black text-white"
-              style={{
-                clipPath:
-                  "polygon(50% 0%, 95% 25%, 95% 75%, 50% 100%, 5% 75%, 5% 25%)",
-              }}
+              className="hex-avatar"
+              style={{ width: "76px", height: "76px", fontSize: "2rem" }}
             >
               {loading ? "?" : (fullName ?? "?").charAt(0).toUpperCase()}
             </div>
-            {/* Rank glow ring */}
+            {/* outer glow ring */}
             <div
-              className="absolute -inset-1 -z-10 opacity-40"
+              className="absolute inset-0 -z-10"
               style={{
                 clipPath:
-                  "polygon(50% 0%, 95% 25%, 95% 75%, 50% 100%, 5% 75%, 5% 25%)",
-                background: "linear-gradient(135deg, #1BB9EB, #C2F542)",
+                  "polygon(50% 0%, 93% 25%, 93% 75%, 50% 100%, 7% 75%, 7% 25%)",
+                background:
+                  "linear-gradient(135deg, var(--utb-cyan), var(--utb-emerald))",
+                transform: "scale(1.1)",
+                opacity: 0.25,
               }}
             />
           </div>
-          {/* Rank badge */}
           {!loading && (
             <span
-              className={`rounded-full border border-current px-2 py-0.5 text-[10px] font-bold tracking-widest ${rank.color}`}
+              className="rank-pill"
+              style={{
+                color: rank.color,
+                borderColor: rank.color,
+                fontSize: "8px",
+              }}
             >
-              {rank.icon} {rank.label}
+              {rank.code}
             </span>
           )}
         </div>
 
-        {/* Info block */}
+        {/* Info */}
         <div className="flex-1 min-w-0">
           {loading ? (
             <div className="space-y-2">
-              <Skeleton className="h-7 w-48" />
-              <Skeleton className="h-4 w-64" />
-              <Skeleton className="h-3 w-32" />
+              <HudSkeleton className="h-6 w-48" />
+              <HudSkeleton className="h-3 w-64" />
+              <HudSkeleton className="h-2 w-32" />
             </div>
           ) : (
             <>
-              <h1 className="truncate text-2xl font-black tracking-tight text-[#1a1a2e]">
-                {fullName ?? "—"}
-              </h1>
-              <p className="mt-0.5 text-sm text-slate-500">{escuela ?? "—"}</p>
+              <div className="flex items-center gap-2 flex-wrap">
+                <h1
+                  className="truncate"
+                  style={{
+                    fontFamily: "var(--font-display)",
+                    fontSize: "1.5rem",
+                    fontWeight: 800,
+                    letterSpacing: "0.04em",
+                    textTransform: "uppercase",
+                    color: "var(--text-primary)",
+                  }}
+                >
+                  {fullName ?? "—"}
+                </h1>
+                <span
+                  className="rank-pill"
+                  style={{
+                    color: rank.color,
+                    borderColor: rank.color,
+                    fontSize: "9px",
+                  }}
+                >
+                  {rank.label}
+                </span>
+              </div>
+              <p
+                style={{
+                  fontFamily: "var(--font-body)",
+                  fontSize: "0.8rem",
+                  color: "var(--text-muted)",
+                  marginTop: "2px",
+                }}
+              >
+                {escuela ?? "—"}
+              </p>
               {semesterLabel && (
-                <p className="mt-0.5 text-xs font-medium uppercase tracking-wider text-[#1BB9EB]">
+                <p
+                  className="hud-label mt-1"
+                  style={{ color: "var(--utb-cyan)" }}
+                >
                   {semesterLabel}
                 </p>
               )}
               {codigo && (
-                <p className="mt-1 font-mono text-xs text-slate-400">
-                  ID: {codigo}
+                <p
+                  className="hud-label mt-0.5"
+                  style={{
+                    fontFamily: "var(--font-mono)",
+                    color: "var(--surface-4)",
+                  }}
+                >
+                  ID · {codigo}
                 </p>
               )}
             </>
           )}
 
-          {/* Overall progress bar */}
-          <div className="mt-4">
-            <div className="mb-1.5 flex items-center justify-between">
-              <span className="text-xs font-medium text-slate-400">
+          {/* Progress bar */}
+          <div className="mt-4 space-y-1.5">
+            <div className="flex items-center justify-between">
+              <span
+                className="hud-label"
+                style={{ color: "var(--text-muted)" }}
+              >
                 Progreso del programa
               </span>
               {!loading && (
-                <span className="text-xs font-bold text-[#1a1a2e]">
+                <span
+                  style={{
+                    fontFamily: "var(--font-display)",
+                    fontSize: "0.9rem",
+                    fontWeight: 700,
+                    color: "var(--utb-cyan)",
+                  }}
+                >
                   {Math.round(porcentaje)}%
                 </span>
               )}
             </div>
             {loading ? (
-              <Skeleton className="h-1.5 w-full" />
+              <HudSkeleton className="h-1" />
             ) : (
-              <GlowBar pct={porcentaje} />
+              <HudProgress pct={porcentaje} />
             )}
           </div>
         </div>
 
-        {/* Quick stat pills */}
+        {/* Quick stats */}
         {!loading && (
-          <div className="flex flex-row gap-3 sm:flex-col">
-            <div className="flex items-center gap-1.5 rounded-xl border border-slate-100 bg-slate-50 px-3 py-2">
-              <Trophy className="h-4 w-4 text-amber-400" />
-              <span className="text-sm font-bold text-[#1a1a2e]">
-                {earnedCount}
-              </span>
-              <span className="text-xs text-slate-400">logros</span>
-            </div>
-            <div className="flex items-center gap-1.5 rounded-xl border border-slate-100 bg-slate-50 px-3 py-2">
-              <Shield className="h-4 w-4 text-[#1BB9EB]" />
-              <span className="text-sm font-bold text-[#1a1a2e]">
-                {titlesCount}
-              </span>
-              <span className="text-xs text-slate-400">títulos</span>
-            </div>
+          <div className="flex flex-row gap-2 sm:flex-col">
+            {[
+              {
+                icon: Trophy,
+                value: earnedCount,
+                label: "logros",
+                color: "var(--utb-emerald)",
+              },
+              {
+                icon: Shield,
+                value: titlesCount,
+                label: "títulos",
+                color: "var(--utb-cyan)",
+              },
+            ].map(({ icon: Icon, value, label, color }) => (
+              <div
+                key={label}
+                className="stat-card flex items-center gap-2"
+                style={{ padding: "0.5rem 0.875rem", minWidth: "90px" }}
+              >
+                <div
+                  className="stat-accent-strip"
+                  style={{ background: color }}
+                />
+                <Icon className="h-3.5 w-3.5 flex-shrink-0" style={{ color }} />
+                <div className="pl-1">
+                  <p className="hud-value" style={{ fontSize: "1.1rem" }}>
+                    {value}
+                  </p>
+                  <p className="hud-label">{label}</p>
+                </div>
+              </div>
+            ))}
           </div>
         )}
       </div>
@@ -309,481 +385,51 @@ function ProfileHeader({
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// ACADEMIC SUMMARY BAR
+// ACADEMIC PROGRESS SECTION
 // ─────────────────────────────────────────────────────────────────────────────
 
-interface StatCardProps {
-  icon: React.ReactNode;
-  label: string;
-  value: string;
-  sub?: string;
-  accent?: string;
-  loading: boolean;
-}
-
 function StatCard({
-  icon,
+  icon: Icon,
   label,
   value,
   sub,
-  accent = "#1BB9EB",
+  accentColor,
   loading,
-}: StatCardProps) {
+}: {
+  icon: React.ElementType;
+  label: string;
+  value: string;
+  sub?: string;
+  accentColor: string;
+  loading: boolean;
+}) {
   return (
-    <div className="relative flex flex-1 flex-col gap-1 overflow-hidden rounded-2xl border border-slate-200 bg-white p-4 shadow-sm transition-shadow hover:shadow-md">
-      {/* accent strip */}
-      <div
-        className="absolute left-0 top-0 h-full w-1 rounded-l-2xl"
-        style={{ background: accent }}
-      />
-      <div className="pl-2">
+    <div className="stat-card flex-1" style={{ minWidth: "0" }}>
+      <div className="stat-accent-strip" style={{ background: accentColor }} />
+      <div className="pl-3">
         <div
-          className="mb-2 flex items-center gap-1.5"
-          style={{ color: accent }}
+          className="flex items-center gap-1.5 mb-2"
+          style={{ color: accentColor }}
         >
-          {icon}
-          <span className="text-[10px] font-bold uppercase tracking-widest text-slate-400">
-            {label}
-          </span>
+          <Icon className="h-3 w-3" />
+          <span className="hud-label">{label}</span>
         </div>
         {loading ? (
-          <Skeleton className="h-8 w-20" />
+          <HudSkeleton className="h-8 w-16" />
         ) : (
-          <p className="text-3xl font-black leading-none text-[#1a1a2e]">
+          <p className="hud-value" style={{ fontSize: "1.75rem" }}>
             {value}
           </p>
         )}
         {!loading && sub && (
-          <p className="mt-1 text-xs text-slate-400">{sub}</p>
-        )}
-      </div>
-    </div>
-  );
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// ACHIEVEMENT CARD
-// ─────────────────────────────────────────────────────────────────────────────
-
-function AchievementCard({ logro }: { logro: ResolvedLogro }) {
-  const rarity = LOGRO_RARITY[logro.nombre] ?? {
-    tier: "common",
-    label: "Común",
-  };
-  const styles = TIER_STYLES[rarity.tier];
-
-  if (!logro.earned) {
-    return (
-      <div
-        className={`relative flex items-start gap-3 rounded-xl border ${styles.border} bg-white/60 p-3 opacity-40 grayscale transition-all hover:opacity-60`}
-      >
-        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-slate-100">
-          <Lock className="h-4 w-4 text-slate-300" />
-        </div>
-        <div className="min-w-0">
-          <p className="truncate text-sm font-semibold text-slate-400">
-            {logro.nombre}
+          <p className="hud-label mt-1" style={{ color: "var(--text-muted)" }}>
+            {sub}
           </p>
-          <p className="mt-0.5 line-clamp-1 text-xs text-slate-300">
-            {logro.descripcion}
-          </p>
-        </div>
-      </div>
-    );
-  }
-
-  return (
-    <div
-      className={`group relative flex items-start gap-3 overflow-hidden rounded-xl border ${styles.border} bg-white p-3 shadow-sm ${styles.glow} transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md`}
-    >
-      {/* Glow effect on hover */}
-      <div
-        className={`absolute inset-0 opacity-0 transition-opacity duration-300 group-hover:opacity-100`}
-        style={{
-          background:
-            rarity.tier === "legendary"
-              ? "radial-gradient(circle at 50% 0%, rgba(251,191,36,0.08) 0%, transparent 70%)"
-              : rarity.tier === "epic"
-                ? "radial-gradient(circle at 50% 0%, rgba(168,85,247,0.06) 0%, transparent 70%)"
-                : "none",
-        }}
-      />
-
-      {/* Icon */}
-      <div
-        className={`relative flex h-9 w-9 shrink-0 items-center justify-center rounded-lg ring-2 ${styles.ring}`}
-        style={{
-          background:
-            rarity.tier === "legendary"
-              ? "linear-gradient(135deg, #fef3c7, #fde68a)"
-              : rarity.tier === "epic"
-                ? "linear-gradient(135deg, #f3e8ff, #e9d5ff)"
-                : rarity.tier === "rare"
-                  ? "linear-gradient(135deg, #eff6ff, #dbeafe)"
-                  : "#f8fafc",
-        }}
-      >
-        <Award
-          className={`h-4 w-4 ${
-            rarity.tier === "legendary"
-              ? "text-amber-500"
-              : rarity.tier === "epic"
-                ? "text-purple-500"
-                : rarity.tier === "rare"
-                  ? "text-blue-500"
-                  : "text-slate-400"
-          }`}
-        />
-        {/* Sparkle for legendary */}
-        {rarity.tier === "legendary" && (
-          <span className="absolute -right-0.5 -top-0.5 text-[8px]">✨</span>
-        )}
-      </div>
-
-      {/* Text */}
-      <div className="min-w-0 flex-1">
-        <div className="flex items-start justify-between gap-1">
-          <p className="truncate text-sm font-bold text-[#1a1a2e]">
-            {logro.nombre}
-          </p>
-          <span
-            className={`ml-1 shrink-0 rounded-full px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide ${styles.badge}`}
-          >
-            {rarity.label}
-          </span>
-        </div>
-        <p className="mt-0.5 line-clamp-2 text-xs text-slate-500">
-          {logro.descripcion}
-        </p>
-      </div>
-    </div>
-  );
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// ACHIEVEMENTS SECTION
-// ─────────────────────────────────────────────────────────────────────────────
-
-const FILTER_TABS: { id: FilterTab; label: string }[] = [
-  { id: "all", label: "Todos" },
-  { id: "earned", label: "Obtenidos" },
-  { id: "locked", label: "Bloqueados" },
-  { id: "rare", label: "Raros+" },
-  { id: "legendary", label: "Legendarios" },
-];
-
-interface AchievementsSectionProps {
-  logros: ResolvedLogro[];
-  loading: boolean;
-}
-
-function AchievementsSection({ logros, loading }: AchievementsSectionProps) {
-  const [filter, setFilter] = useState<FilterTab>("earned");
-
-  const filtered = useMemo(() => {
-    switch (filter) {
-      case "earned":
-        return logros.filter((l) => l.earned);
-      case "locked":
-        return logros.filter((l) => !l.earned);
-      case "rare":
-        return logros.filter((l) => {
-          const t = LOGRO_RARITY[l.nombre]?.tier;
-          return (
-            l.earned && (t === "rare" || t === "epic" || t === "legendary")
-          );
-        });
-      case "legendary":
-        return logros.filter(
-          (l) => l.earned && LOGRO_RARITY[l.nombre]?.tier === "legendary",
-        );
-      default:
-        return logros;
-    }
-  }, [logros, filter]);
-
-  const earnedCount = useMemo(
-    () => logros.filter((l) => l.earned).length,
-    [logros],
-  );
-  const pct =
-    logros.length > 0 ? Math.round((earnedCount / logros.length) * 100) : 0;
-
-  return (
-    <div className="rounded-2xl border border-slate-200 bg-white shadow-sm">
-      {/* Section header */}
-      <div className="flex flex-col gap-3 border-b border-slate-100 px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
-        <div className="flex items-center gap-2">
-          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#1BB9EB]/10">
-            <Trophy className="h-4 w-4 text-[#1BB9EB]" />
-          </div>
-          <div>
-            <h2 className="text-sm font-bold uppercase tracking-wider text-[#1a1a2e]">
-              Logros
-            </h2>
-            {!loading && (
-              <p className="text-xs text-slate-400">
-                {earnedCount} / {logros.length} desbloqueados · {pct}%
-              </p>
-            )}
-          </div>
-        </div>
-
-        {/* Compact progress */}
-        {!loading && (
-          <div className="flex w-32 shrink-0 flex-col gap-1">
-            <GlowBar pct={pct} color="from-[#1BB9EB] to-[#C2F542]" />
-          </div>
-        )}
-      </div>
-
-      {/* Filter tabs */}
-      <div className="flex gap-1 overflow-x-auto px-5 pt-3 pb-1">
-        {FILTER_TABS.map((tab) => (
-          <button
-            key={tab.id}
-            onClick={() => setFilter(tab.id)}
-            className={`shrink-0 rounded-lg px-3 py-1.5 text-xs font-semibold transition-all ${
-              filter === tab.id
-                ? "bg-[#1a1a2e] text-white"
-                : "bg-slate-100 text-slate-500 hover:bg-slate-200"
-            }`}
-          >
-            {tab.label}
-          </button>
-        ))}
-      </div>
-
-      {/* Grid */}
-      <div className="p-5">
-        {loading ? (
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
-            {Array.from({ length: 6 }).map((_, i) => (
-              <Skeleton key={i} className="h-20" />
-            ))}
-          </div>
-        ) : filtered.length === 0 ? (
-          <div className="flex flex-col items-center justify-center gap-2 py-10 text-center">
-            <Star className="h-8 w-8 text-slate-200" />
-            <p className="text-sm font-medium text-slate-400">
-              Ningún logro en esta categoría
-            </p>
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
-            {filtered.map((logro) => (
-              <AchievementCard key={logro.id_logro} logro={logro} />
-            ))}
-          </div>
         )}
       </div>
     </div>
   );
 }
-
-// ─────────────────────────────────────────────────────────────────────────────
-// TITLES / RANKS SECTION
-// ─────────────────────────────────────────────────────────────────────────────
-
-function TitlesSection({
-  titles,
-  loading,
-}: {
-  titles: string[];
-  loading: boolean;
-}) {
-  return (
-    <div className="rounded-2xl border border-slate-200 bg-white shadow-sm">
-      <div className="flex items-center gap-2 border-b border-slate-100 px-5 py-4">
-        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-amber-50">
-          <Shield className="h-4 w-4 text-amber-500" />
-        </div>
-        <div>
-          <h2 className="text-sm font-bold uppercase tracking-wider text-[#1a1a2e]">
-            Títulos y Rangos
-          </h2>
-          {!loading && (
-            <p className="text-xs text-slate-400">
-              {titles.length}{" "}
-              {titles.length === 1 ? "título obtenido" : "títulos obtenidos"}
-            </p>
-          )}
-        </div>
-      </div>
-
-      <div className="p-5">
-        {loading ? (
-          <div className="flex flex-wrap gap-2">
-            {[1, 2, 3].map((i) => (
-              <Skeleton key={i} className="h-8 w-32 rounded-full" />
-            ))}
-          </div>
-        ) : titles.length === 0 ? (
-          <div className="flex flex-col items-center justify-center gap-2 py-6 text-center">
-            <Shield className="h-8 w-8 text-slate-200" />
-            <p className="text-sm text-slate-400">
-              Completa etapas del programa para obtener títulos
-            </p>
-          </div>
-        ) : (
-          <div className="flex flex-wrap gap-2">
-            {titles.map((title) => {
-              const style =
-                TITLE_STYLES[title] ??
-                "bg-slate-50 text-slate-700 border-slate-200";
-              return (
-                <span
-                  key={title}
-                  className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-bold transition-all hover:scale-105 ${style}`}
-                >
-                  <Shield className="h-3 w-3" />
-                  {title}
-                </span>
-              );
-            })}
-          </div>
-        )}
-      </div>
-    </div>
-  );
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// NEXT UNLOCKS — "qué puedo desbloquear después"
-// ─────────────────────────────────────────────────────────────────────────────
-
-/** Very rough progress estimation for locked achievements */
-function estimateProgress(
-  logro: ResolvedLogro,
-  stats: { materiasAprobadas: number; totalMaterias: number; pga: number },
-): number {
-  const name = logro.nombre;
-  const { materiasAprobadas, totalMaterias, pga } = stats;
-  if (name === "Décima superada")
-    return Math.min((materiasAprobadas / 10) * 100, 99);
-  if (name === "Veinte arriba")
-    return Math.min((materiasAprobadas / 20) * 100, 99);
-  if (name === "Treinta y contando")
-    return Math.min((materiasAprobadas / 30) * 100, 99);
-  if (name === "Arrancando fuerte")
-    return Math.min((materiasAprobadas / 8) * 100, 99);
-  if (name === "Mitad del camino")
-    return Math.min((materiasAprobadas / totalMaterias / 0.5) * 100, 99);
-  if (name === "Promedio alto") return Math.min((pga / 4.0) * 100, 99);
-  if (name === "Matrícula de honor") return Math.min((pga / 4.5) * 100, 99);
-  if (name === "Cinco con distinción")
-    return Math.min((materiasAprobadas / 5) * 100, 99);
-  if (name === "Diez con distinción")
-    return Math.min((materiasAprobadas / 10) * 100, 99);
-  return Math.min((materiasAprobadas / Math.max(totalMaterias, 1)) * 80, 85);
-}
-
-interface NextUnlocksSectionProps {
-  logros: ResolvedLogro[];
-  loading: boolean;
-  materiasAprobadas: number;
-  totalMaterias: number;
-  pga: number;
-}
-
-function NextUnlocksSection({
-  logros,
-  loading,
-  materiasAprobadas,
-  totalMaterias,
-  pga,
-}: NextUnlocksSectionProps) {
-  const nextUp = useMemo(() => {
-    const stats = { materiasAprobadas, totalMaterias, pga };
-    return logros
-      .filter((l) => !l.earned)
-      .map((l) => ({ ...l, est: estimateProgress(l, stats) }))
-      .sort((a, b) => b.est - a.est)
-      .slice(0, 3);
-  }, [logros, materiasAprobadas, totalMaterias, pga]);
-
-  if (loading) {
-    return (
-      <div className="rounded-2xl border border-slate-200 bg-white shadow-sm">
-        <div className="border-b border-slate-100 px-5 py-4">
-          <Skeleton className="h-4 w-40" />
-        </div>
-        <div className="space-y-3 p-5">
-          {[1, 2, 3].map((i) => (
-            <Skeleton key={i} className="h-16" />
-          ))}
-        </div>
-      </div>
-    );
-  }
-
-  if (nextUp.length === 0) return null;
-
-  return (
-    <div className="rounded-2xl border border-slate-200 bg-white shadow-sm">
-      <div className="flex items-center gap-2 border-b border-slate-100 px-5 py-4">
-        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#C2F542]/20">
-          <Target className="h-4 w-4 text-[#1a1a2e]" />
-        </div>
-        <div>
-          <h2 className="text-sm font-bold uppercase tracking-wider text-[#1a1a2e]">
-            Próximos Desbloqueos
-          </h2>
-          <p className="text-xs text-slate-400">
-            Los más cerca de desbloquearse
-          </p>
-        </div>
-      </div>
-
-      <div className="space-y-3 p-5">
-        {nextUp.map((logro) => {
-          const rarity = LOGRO_RARITY[logro.nombre] ?? {
-            tier: "common",
-            label: "Común",
-          };
-          const styles = TIER_STYLES[rarity.tier];
-          return (
-            <div
-              key={logro.id_logro}
-              className={`rounded-xl border ${styles.border} bg-white p-3`}
-            >
-              <div className="mb-2 flex items-center justify-between gap-2">
-                <div className="flex items-center gap-2 min-w-0">
-                  <div
-                    className={`h-2 w-2 shrink-0 rounded-full ${styles.dot}`}
-                  />
-                  <p className="truncate text-sm font-semibold text-[#1a1a2e]">
-                    {logro.nombre}
-                  </p>
-                </div>
-                <span className="shrink-0 text-xs font-bold text-slate-500">
-                  {Math.round(logro.est)}%
-                </span>
-              </div>
-              <GlowBar
-                pct={logro.est}
-                color={
-                  rarity.tier === "legendary"
-                    ? "from-amber-300 to-amber-500"
-                    : rarity.tier === "epic"
-                      ? "from-purple-300 to-purple-500"
-                      : "from-[#1BB9EB] to-[#00C853]"
-                }
-              />
-              <p className="mt-1.5 text-xs text-slate-400">
-                {logro.descripcion}
-              </p>
-            </div>
-          );
-        })}
-      </div>
-    </div>
-  );
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// ACADEMIC PROGRESS MINI-SECTION (with link to "Ruta Académica")
-// ─────────────────────────────────────────────────────────────────────────────
 
 function AcademicProgressSection({
   loading,
@@ -801,56 +447,704 @@ function AcademicProgressSection({
   porcentaje: number;
 }) {
   return (
-    <div className="rounded-2xl border border-slate-200 bg-white shadow-sm">
-      <div className="flex items-center justify-between border-b border-slate-100 px-5 py-4">
+    <div
+      className="hud-panel relative overflow-hidden"
+      style={{ padding: "0" }}
+    >
+      {/* Header */}
+      <div
+        className="flex items-center justify-between px-4 py-3"
+        style={{ borderBottom: "1px solid var(--surface-3)" }}
+      >
         <div className="flex items-center gap-2">
-          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-emerald-50">
-            <GraduationCap className="h-4 w-4 text-emerald-600" />
-          </div>
-          <h2 className="text-sm font-bold uppercase tracking-wider text-[#1a1a2e]">
+          <div
+            className="h-4 w-[2px]"
+            style={{ background: "var(--utb-savio)" }}
+          />
+          <h2
+            style={{
+              fontFamily: "var(--font-display)",
+              fontSize: "0.7rem",
+              fontWeight: 700,
+              letterSpacing: "0.15em",
+              textTransform: "uppercase",
+              color: "var(--text-primary)",
+            }}
+          >
             Progreso Académico
           </h2>
         </div>
         <Link
           href="/dashboard/malla"
-          className="flex items-center gap-1 rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-semibold text-slate-500 transition-all hover:border-[#1BB9EB] hover:text-[#1BB9EB]"
+          className="btn-hud"
+          style={{ fontSize: "9px", padding: "3px 10px" }}
         >
           Ver malla completa
-          <ChevronRight className="h-3 w-3" />
+          <ArrowUpRight className="h-2.5 w-2.5" />
         </Link>
       </div>
 
-      <div className="grid grid-cols-2 gap-3 p-5 sm:grid-cols-4">
+      {/* Stats */}
+      <div
+        className="grid grid-cols-2 gap-px sm:grid-cols-4"
+        style={{ background: "var(--surface-3)" }}
+      >
         <StatCard
-          icon={<GraduationCap className="h-3.5 w-3.5" />}
+          icon={GraduationCap}
           label="PGA"
           value={loading ? "—" : pga > 0 ? pga.toFixed(2) : "—"}
-          accent="#1BB9EB"
+          accentColor="var(--utb-cyan)"
           loading={loading}
         />
         <StatCard
-          icon={<Award className="h-3.5 w-3.5" />}
+          icon={Award}
           label="Créditos"
           value={loading ? "—" : creditos !== null ? String(creditos) : "—"}
-          accent="#00C853"
+          accentColor="var(--utb-savio)"
           loading={loading}
         />
         <StatCard
-          icon={<BookOpen className="h-3.5 w-3.5" />}
+          icon={BookOpen}
           label="Materias"
           value={loading ? "—" : String(materiasAprobadas)}
           sub={`de ${totalMaterias}`}
-          accent="#C2F542"
+          accentColor="var(--utb-emerald)"
           loading={loading}
         />
         <StatCard
-          icon={<Percent className="h-3.5 w-3.5" />}
+          icon={Percent}
           label="Avance"
           value={loading ? "—" : `${Math.round(porcentaje)}%`}
-          accent="#f59e0b"
+          accentColor="var(--utb-aqua)"
           loading={loading}
         />
       </div>
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// ACHIEVEMENT CARD — Marathon geometric style
+// ─────────────────────────────────────────────────────────────────────────────
+
+function AchievementCard({
+  logro,
+  idx,
+}: {
+  logro: ResolvedLogro;
+  idx: number;
+}) {
+  const rarity = LOGRO_RARITY[logro.nombre] ?? {
+    tier: "common" as const,
+    label: "Común",
+  };
+
+  const tierColors = {
+    common: { accent: "var(--tier-common)", line: "rgba(122,139,168,0.3)" },
+    rare: { accent: "var(--utb-cyan)", line: "rgba(27,185,235,0.35)" },
+    epic: { accent: "#7C3AED", line: "rgba(124,58,237,0.35)" },
+    legendary: { accent: "var(--utb-emerald)", line: "rgba(245,158,11,0.40)" },
+  }[rarity.tier];
+
+  if (!logro.earned) {
+    return (
+      <div className="achievement-card locked" style={{ position: "relative" }}>
+        <SeqNumber n={idx + 1} />
+        <div className="flex items-start gap-2.5">
+          <div
+            className="flex h-8 w-8 shrink-0 items-center justify-center"
+            style={{
+              clipPath: "var(--clip-corner-sm)",
+              background: "var(--surface-2)",
+              border: "1px solid var(--surface-3)",
+            }}
+          >
+            <Lock
+              className="h-3.5 w-3.5"
+              style={{ color: "var(--surface-4)" }}
+            />
+          </div>
+          <div className="min-w-0 flex-1">
+            <p
+              className="truncate"
+              style={{
+                fontFamily: "var(--font-display)",
+                fontSize: "0.75rem",
+                fontWeight: 600,
+                letterSpacing: "0.04em",
+                textTransform: "uppercase",
+                color: "var(--surface-4)",
+              }}
+            >
+              {logro.nombre}
+            </p>
+            <p
+              style={{
+                fontFamily: "var(--font-body)",
+                fontSize: "0.7rem",
+                color: "var(--surface-4)",
+                marginTop: "2px",
+              }}
+            >
+              {logro.descripcion}
+            </p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div
+      className={`achievement-card ${rarity.tier === "legendary" ? "legendary" : ""}`}
+      style={{
+        position: "relative",
+        borderColor: rarity.tier !== "common" ? tierColors.line : undefined,
+      }}
+    >
+      <SeqNumber n={idx + 1} />
+
+      {/* Left accent line */}
+      <div
+        style={{
+          position: "absolute",
+          left: 0,
+          top: 0,
+          bottom: 0,
+          width: "2px",
+          background: tierColors.accent,
+          opacity: 0.7,
+        }}
+      />
+
+      <div className="flex items-start gap-2.5 pl-2">
+        {/* Icon */}
+        <div
+          className="flex h-8 w-8 shrink-0 items-center justify-center"
+          style={{
+            clipPath: "var(--clip-corner-sm)",
+            background: `${tierColors.accent}15`,
+            border: `1px solid ${tierColors.accent}40`,
+            position: "relative",
+          }}
+        >
+          <Award className="h-3.5 w-3.5" style={{ color: tierColors.accent }} />
+          {rarity.tier === "legendary" && (
+            <span
+              style={{
+                position: "absolute",
+                top: "-2px",
+                right: "-2px",
+                fontSize: "7px",
+              }}
+            >
+              ✦
+            </span>
+          )}
+        </div>
+
+        {/* Text */}
+        <div className="min-w-0 flex-1 pr-6">
+          <div className="flex items-start justify-between gap-1 flex-wrap">
+            <p
+              className="truncate"
+              style={{
+                fontFamily: "var(--font-display)",
+                fontSize: "0.72rem",
+                fontWeight: 700,
+                letterSpacing: "0.05em",
+                textTransform: "uppercase",
+                color: "var(--text-primary)",
+              }}
+            >
+              {logro.nombre}
+            </p>
+          </div>
+          <p
+            style={{
+              fontFamily: "var(--font-body)",
+              fontSize: "0.68rem",
+              color: "var(--text-muted)",
+              marginTop: "2px",
+              lineHeight: 1.4,
+            }}
+          >
+            {logro.descripcion}
+          </p>
+          {/* Tier badge */}
+          <div className="mt-1.5">
+            <span className={`tier-badge tier-${rarity.tier}`}>
+              {rarity.label}
+            </span>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// ACHIEVEMENTS SECTION
+// ─────────────────────────────────────────────────────────────────────────────
+
+const FILTER_TABS: { id: FilterTab; label: string }[] = [
+  { id: "all", label: "Todos" },
+  { id: "earned", label: "Obtenidos" },
+  { id: "locked", label: "Bloqueados" },
+  { id: "rare", label: "Raros+" },
+  { id: "legendary", label: "Legendarios" },
+];
+
+function AchievementsSection({
+  logros,
+  loading,
+}: {
+  logros: ResolvedLogro[];
+  loading: boolean;
+}) {
+  const [filter, setFilter] = useState<FilterTab>("earned");
+
+  const filtered = useMemo(() => {
+    switch (filter) {
+      case "earned":
+        return logros.filter((l) => l.earned);
+      case "locked":
+        return logros.filter((l) => !l.earned);
+      case "rare":
+        return logros.filter(
+          (l) =>
+            l.earned &&
+            ["rare", "epic", "legendary"].includes(
+              LOGRO_RARITY[l.nombre]?.tier ?? "",
+            ),
+        );
+      case "legendary":
+        return logros.filter(
+          (l) => l.earned && LOGRO_RARITY[l.nombre]?.tier === "legendary",
+        );
+      default:
+        return logros;
+    }
+  }, [logros, filter]);
+
+  const earnedCount = useMemo(
+    () => logros.filter((l) => l.earned).length,
+    [logros],
+  );
+  const pct =
+    logros.length > 0 ? Math.round((earnedCount / logros.length) * 100) : 0;
+
+  return (
+    <div className="hud-panel" style={{ padding: 0 }}>
+      {/* Header */}
+      <div
+        className="flex flex-col gap-3 px-4 py-3 sm:flex-row sm:items-center sm:justify-between"
+        style={{ borderBottom: "1px solid var(--surface-3)" }}
+      >
+        <div className="flex items-center gap-3">
+          <div
+            className="h-4 w-[2px]"
+            style={{ background: "var(--utb-cyan)" }}
+          />
+          <div>
+            <h2
+              style={{
+                fontFamily: "var(--font-display)",
+                fontSize: "0.7rem",
+                fontWeight: 700,
+                letterSpacing: "0.15em",
+                textTransform: "uppercase",
+                color: "var(--text-primary)",
+              }}
+            >
+              Logros
+            </h2>
+            {!loading && (
+              <p
+                className="hud-label"
+                style={{ color: "var(--text-muted)", marginTop: "1px" }}
+              >
+                {earnedCount}/{logros.length} desbloqueados · {pct}%
+              </p>
+            )}
+          </div>
+        </div>
+        {!loading && (
+          <div style={{ width: "6rem" }}>
+            <HudProgress pct={pct} color="var(--utb-cyan)" />
+          </div>
+        )}
+      </div>
+
+      {/* Filters */}
+      <div
+        className="flex gap-1.5 overflow-x-auto px-4 py-2.5"
+        style={{ borderBottom: "1px solid var(--surface-3)" }}
+      >
+        {FILTER_TABS.map((tab) => (
+          <button
+            key={tab.id}
+            onClick={() => setFilter(tab.id)}
+            className={`filter-tab ${filter === tab.id ? "active" : ""}`}
+          >
+            {tab.label}
+          </button>
+        ))}
+      </div>
+
+      {/* Grid */}
+      <div className="p-4">
+        {loading ? (
+          <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2 lg:grid-cols-3">
+            {Array.from({ length: 6 }).map((_, i) => (
+              <HudSkeleton key={i} className="h-20" />
+            ))}
+          </div>
+        ) : filtered.length === 0 ? (
+          <div className="flex flex-col items-center justify-center gap-2 py-10 text-center">
+            <Star className="h-7 w-7" style={{ color: "var(--surface-3)" }} />
+            <p className="hud-label" style={{ color: "var(--text-muted)" }}>
+              Ningún logro en esta categoría
+            </p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2 lg:grid-cols-3">
+            {filtered.map((logro, i) => (
+              <AchievementCard key={logro.id_logro} logro={logro} idx={i} />
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// TITLES SECTION
+// ─────────────────────────────────────────────────────────────────────────────
+
+function TitlesSection({
+  titles,
+  loading,
+}: {
+  titles: string[];
+  loading: boolean;
+}) {
+  return (
+    <div className="hud-panel" style={{ padding: 0 }}>
+      <div
+        className="flex items-center gap-2 px-4 py-3"
+        style={{ borderBottom: "1px solid var(--surface-3)" }}
+      >
+        <div
+          className="h-4 w-[2px]"
+          style={{ background: "var(--utb-emerald)" }}
+        />
+        <div>
+          <h2
+            style={{
+              fontFamily: "var(--font-display)",
+              fontSize: "0.7rem",
+              fontWeight: 700,
+              letterSpacing: "0.15em",
+              textTransform: "uppercase",
+              color: "var(--text-primary)",
+            }}
+          >
+            Títulos y Rangos
+          </h2>
+          {!loading && (
+            <p
+              className="hud-label"
+              style={{ color: "var(--text-muted)", marginTop: "1px" }}
+            >
+              {titles.length}{" "}
+              {titles.length === 1 ? "título obtenido" : "títulos obtenidos"}
+            </p>
+          )}
+        </div>
+      </div>
+      <div className="p-4">
+        {loading ? (
+          <div className="flex flex-wrap gap-2">
+            {[1, 2, 3].map((i) => (
+              <HudSkeleton key={i} className="h-6 w-28" />
+            ))}
+          </div>
+        ) : titles.length === 0 ? (
+          <div className="flex flex-col items-center gap-2 py-5 text-center">
+            <Shield className="h-6 w-6" style={{ color: "var(--surface-3)" }} />
+            <p className="hud-label" style={{ color: "var(--text-muted)" }}>
+              Completa etapas del programa para obtener títulos
+            </p>
+          </div>
+        ) : (
+          <div className="flex flex-wrap gap-2">
+            {titles.map((title) => {
+              const s = TITLE_STYLES[title] ?? {
+                bg: "rgba(122,139,168,0.08)",
+                color: "var(--text-muted)",
+                border: "rgba(122,139,168,0.25)",
+              };
+              return (
+                <span
+                  key={title}
+                  className="title-badge"
+                  style={{
+                    background: s.bg,
+                    color: s.color,
+                    borderColor: s.border,
+                  }}
+                >
+                  <Shield className="h-2.5 w-2.5" />
+                  {title}
+                </span>
+              );
+            })}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// NEXT UNLOCKS
+// ─────────────────────────────────────────────────────────────────────────────
+
+function estimateProgress(
+  logro: ResolvedLogro,
+  stats: { materiasAprobadas: number; totalMaterias: number; pga: number },
+): number {
+  const { materiasAprobadas, totalMaterias, pga } = stats;
+  const n = logro.nombre;
+  if (n === "Décima superada")
+    return Math.min((materiasAprobadas / 10) * 100, 99);
+  if (n === "Veinte arriba")
+    return Math.min((materiasAprobadas / 20) * 100, 99);
+  if (n === "Treinta y contando")
+    return Math.min((materiasAprobadas / 30) * 100, 99);
+  if (n === "Arrancando fuerte")
+    return Math.min((materiasAprobadas / 8) * 100, 99);
+  if (n === "Mitad del camino")
+    return Math.min((materiasAprobadas / totalMaterias / 0.5) * 100, 99);
+  if (n === "Promedio alto") return Math.min((pga / 4.0) * 100, 99);
+  if (n === "Matrícula de honor") return Math.min((pga / 4.5) * 100, 99);
+  if (n === "Cinco con distinción")
+    return Math.min((materiasAprobadas / 5) * 100, 99);
+  if (n === "Diez con distinción")
+    return Math.min((materiasAprobadas / 10) * 100, 99);
+  return Math.min((materiasAprobadas / Math.max(totalMaterias, 1)) * 80, 85);
+}
+
+function NextUnlocksSection({
+  logros,
+  loading,
+  materiasAprobadas,
+  totalMaterias,
+  pga,
+}: {
+  logros: ResolvedLogro[];
+  loading: boolean;
+  materiasAprobadas: number;
+  totalMaterias: number;
+  pga: number;
+}) {
+  const nextUp = useMemo(() => {
+    const stats = { materiasAprobadas, totalMaterias, pga };
+    return logros
+      .filter((l) => !l.earned)
+      .map((l) => ({ ...l, est: estimateProgress(l, stats) }))
+      .sort((a, b) => b.est - a.est)
+      .slice(0, 3);
+  }, [logros, materiasAprobadas, totalMaterias, pga]);
+
+  if (loading) {
+    return (
+      <div className="hud-panel" style={{ padding: 0 }}>
+        <div
+          className="px-4 py-3"
+          style={{ borderBottom: "1px solid var(--surface-3)" }}
+        >
+          <HudSkeleton className="h-4 w-40" />
+        </div>
+        <div className="space-y-2 p-4">
+          {[1, 2, 3].map((i) => (
+            <HudSkeleton key={i} className="h-16" />
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  if (nextUp.length === 0) return null;
+
+  return (
+    <div className="hud-panel" style={{ padding: 0 }}>
+      <div
+        className="flex items-center gap-2 px-4 py-3"
+        style={{ borderBottom: "1px solid var(--surface-3)" }}
+      >
+        <div
+          className="h-4 w-[2px]"
+          style={{ background: "var(--utb-aqua)" }}
+        />
+        <div>
+          <h2
+            style={{
+              fontFamily: "var(--font-display)",
+              fontSize: "0.7rem",
+              fontWeight: 700,
+              letterSpacing: "0.15em",
+              textTransform: "uppercase",
+              color: "var(--text-primary)",
+            }}
+          >
+            Próximos Desbloqueos
+          </h2>
+          <p
+            className="hud-label"
+            style={{ color: "var(--text-muted)", marginTop: "1px" }}
+          >
+            Los más cercanos a desbloquearse
+          </p>
+        </div>
+      </div>
+      <div className="space-y-2 p-4">
+        {nextUp.map((logro, i) => {
+          const rarity = LOGRO_RARITY[logro.nombre] ?? {
+            tier: "common" as const,
+          };
+          const accentColor =
+            rarity.tier === "legendary"
+              ? "var(--utb-emerald)"
+              : rarity.tier === "epic"
+                ? "#7C3AED"
+                : rarity.tier === "rare"
+                  ? "var(--utb-cyan)"
+                  : "var(--text-muted)";
+          return (
+            <div
+              key={logro.id_logro}
+              className="unlock-row"
+              style={{ borderColor: `${accentColor}30` }}
+            >
+              <div className="flex items-center justify-between gap-2 mb-2">
+                <div className="flex items-center gap-2 min-w-0">
+                  <div
+                    className="h-1.5 w-1.5 shrink-0"
+                    style={{
+                      background: accentColor,
+                      clipPath: "var(--clip-corner-sm)",
+                    }}
+                  />
+                  <p
+                    className="truncate"
+                    style={{
+                      fontFamily: "var(--font-display)",
+                      fontSize: "0.7rem",
+                      fontWeight: 700,
+                      letterSpacing: "0.05em",
+                      textTransform: "uppercase",
+                      color: "var(--text-primary)",
+                    }}
+                  >
+                    {logro.nombre}
+                  </p>
+                </div>
+                <span
+                  className="shrink-0"
+                  style={{
+                    fontFamily: "var(--font-mono)",
+                    fontSize: "10px",
+                    color: accentColor,
+                    fontWeight: 700,
+                  }}
+                >
+                  {Math.round(logro.est)}%
+                </span>
+              </div>
+              <HudProgress pct={logro.est} color={accentColor} />
+              <p
+                className="mt-1.5"
+                style={{
+                  fontFamily: "var(--font-body)",
+                  fontSize: "0.67rem",
+                  color: "var(--text-muted)",
+                }}
+              >
+                {logro.descripcion}
+              </p>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// ACTIVITY RIBBON
+// ─────────────────────────────────────────────────────────────────────────────
+
+function ActivityRibbon({
+  earnedCount,
+  pga,
+  loading,
+}: {
+  earnedCount: number;
+  pga: number;
+  loading: boolean;
+}) {
+  if (loading) return null;
+  const alerts = [];
+  if (pga >= 4.5)
+    alerts.push({
+      icon: Flame,
+      text: `PGA ${pga.toFixed(2)} — Matrícula de Honor`,
+      color: "var(--utb-emerald)",
+    });
+  else if (pga >= 4.0)
+    alerts.push({
+      icon: Flame,
+      text: `PGA ${pga.toFixed(2)} — Promedio Alto`,
+      color: "var(--utb-savio)",
+    });
+  if (earnedCount >= 10)
+    alerts.push({
+      icon: Zap,
+      text: `${earnedCount} logros desbloqueados`,
+      color: "var(--utb-cyan)",
+    });
+  if (alerts.length === 0) return null;
+
+  return (
+    <div className="flex flex-wrap gap-2">
+      {alerts.map((a, i) => (
+        <div
+          key={i}
+          className="flex items-center gap-2"
+          style={{
+            border: `1px solid ${a.color}40`,
+            background: `${a.color}08`,
+            padding: "0.4rem 0.875rem",
+            clipPath: "var(--clip-corner-sm)",
+          }}
+        >
+          <a.icon className="h-3.5 w-3.5" style={{ color: a.color }} />
+          <span
+            style={{
+              fontFamily: "var(--font-mono)",
+              fontSize: "10px",
+              letterSpacing: "0.08em",
+              color: a.color,
+              fontWeight: 700,
+            }}
+          >
+            {a.text}
+          </span>
+        </div>
+      ))}
     </div>
   );
 }
@@ -863,7 +1157,6 @@ export default function PerfilPage() {
   const { profile, loading } = useCurrentUser();
   const { profile: questProfile, loading: questLoading } = useQuestProfile();
 
-  // ── Derived state (memoised to avoid recalculations on every render) ──────
   const fullName = profile?.fullName ?? null;
   const escuela = profile?.carrera?.escuela ?? null;
   const semesterLabel = profile?.semesterLabel ?? null;
@@ -876,20 +1169,37 @@ export default function PerfilPage() {
   const logros = profile?.logros ?? [];
   const earnedLogros = profile?.earnedLogros ?? [];
   const titles = questProfile?.titles ?? [];
-
   const isLoading = loading || questLoading;
 
   return (
-    <div className="flex flex-col gap-5 pb-8">
-      {/* ── Page title ───────────────────────────────────────────────────── */}
+    <div className="flex flex-col gap-4 pb-8">
+      {/* Page heading */}
       <div className="flex items-baseline gap-3">
-        <h1 className="text-2xl font-black uppercase tracking-tight text-[#1a1a2e]">
+        <h1
+          style={{
+            fontFamily: "var(--font-display)",
+            fontSize: "1.5rem",
+            fontWeight: 900,
+            letterSpacing: "0.12em",
+            textTransform: "uppercase",
+            color: "var(--text-primary)",
+          }}
+        >
           Perfil
         </h1>
-        <span className="font-mono text-xs text-slate-400">// dashboard</span>
+        <span
+          style={{
+            fontFamily: "var(--font-mono)",
+            fontSize: "10px",
+            letterSpacing: "0.12em",
+            color: "var(--text-muted)",
+          }}
+        >
+          // dashboard · student-profile
+        </span>
       </div>
 
-      {/* ── Profile Header ───────────────────────────────────────────────── */}
+      {/* Header panel */}
       <ProfileHeader
         loading={isLoading}
         fullName={fullName}
@@ -901,7 +1211,14 @@ export default function PerfilPage() {
         earnedCount={earnedLogros.length}
       />
 
-      {/* ── Academic progress ────────────────────────────────────────────── */}
+      {/* Activity alerts */}
+      <ActivityRibbon
+        earnedCount={earnedLogros.length}
+        pga={pga}
+        loading={isLoading}
+      />
+
+      {/* Academic stats */}
       <AcademicProgressSection
         loading={isLoading}
         pga={pga}
@@ -911,15 +1228,12 @@ export default function PerfilPage() {
         porcentaje={porcentaje}
       />
 
-      {/* ── Two-column layout: Achievements + sidebar ─────────────────────── */}
-      <div className="flex flex-col gap-5 xl:flex-row">
-        {/* Left: Achievements (wider) */}
+      {/* Main: Achievements + sidebar */}
+      <div className="flex flex-col gap-4 xl:flex-row">
         <div className="min-w-0 flex-1">
           <AchievementsSection logros={logros} loading={isLoading} />
         </div>
-
-        {/* Right: Titles + Next unlocks */}
-        <div className="flex w-full flex-col gap-5 xl:w-80 xl:shrink-0">
+        <div className="flex w-full flex-col gap-4 xl:w-72 xl:shrink-0">
           <TitlesSection titles={titles} loading={isLoading} />
           <NextUnlocksSection
             logros={logros}
