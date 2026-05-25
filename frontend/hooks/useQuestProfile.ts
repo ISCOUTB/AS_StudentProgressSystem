@@ -7,7 +7,7 @@ import {
   type Materia,
 } from "../lib/questEngine";
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+const API_URL = process.env.NEXT_PUBLIC_API_URL;
 
 function getToken(): string | null {
   if (typeof window === "undefined") return null;
