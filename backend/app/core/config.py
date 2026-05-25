@@ -12,7 +12,7 @@ class Settings(BaseSettings):
     APP_NAME: str = Field(default="Student Progress System")
     DEBUG: bool = Field(default=False)
     # Orígenes permitidos para CORS
-    ALLOWED_ORIGINS: list[str] = Field(default=[])
+    ALLOWED_ORIGINS: str = Field(default=[])
     # Si es True, ejecuta el seed de datos demo al iniciar
     ENABLE_DEMO_SEED: bool = Field(default=False)
 
