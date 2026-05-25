@@ -1,10 +1,14 @@
 "use client";
 
+/**
+ * Login Page — UTB Design System
+ */
+
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
-import { Mail, Lock, Eye, EyeOff, ArrowRight } from "lucide-react";
+import { Mail, Lock, Eye, EyeOff, ArrowRight, Shield } from "lucide-react";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
@@ -21,35 +25,24 @@ export default function LoginPage() {
     e.preventDefault();
     setError("");
     setLoading(true);
-
     try {
-      // OAuth2PasswordRequestForm expects x-www-form-urlencoded
-      // with fields "username" and "password"
       const body = new URLSearchParams();
       body.append("username", email);
       body.append("password", password);
-
       const res = await fetch(`${API_URL}/login`, {
         method: "POST",
         headers: { "Content-Type": "application/x-www-form-urlencoded" },
         body: body.toString(),
       });
-
       if (!res.ok) {
         const data = await res.json();
         setError(data.detail || "Credenciales incorrectas");
         return;
       }
-
       const data = await res.json();
       localStorage.setItem("sps_token", data.access_token);
-
-      if (rememberMe) {
-        localStorage.setItem("sps_email", email);
-      } else {
-        localStorage.removeItem("sps_email");
-      }
-
+      if (rememberMe) localStorage.setItem("sps_email", email);
+      else localStorage.removeItem("sps_email");
       router.push("/dashboard/perfil");
     } catch {
       setError("No se pudo conectar con el servidor. Intenta de nuevo.");
@@ -59,191 +52,534 @@ export default function LoginPage() {
   };
 
   return (
-    <main className="relative min-h-screen w-full overflow-hidden">
+    <main
+      className="relative min-h-screen w-full overflow-hidden flex items-center justify-center"
+      style={{
+        backgroundColor: "var(--surface-0)",
+        fontFamily: "var(--font-body)",
+      }}
+    >
+      {/* Background image */}
       <div
         className="absolute inset-0 bg-cover bg-center bg-no-repeat"
-        style={{ backgroundImage: "url('/images/fondo-login.png')" }}
+        style={{
+          backgroundImage: "url('/images/fondo-login.png')",
+          opacity: 0.18,
+        }}
       />
 
-      <div className="relative z-10 flex min-h-screen items-center justify-center px-4">
-        <div className="w-full max-w-4xl overflow-hidden rounded-2xl bg-white/80 shadow-2xl backdrop-blur-sm">
-          <div className="flex flex-col lg:flex-row">
-            {/* Left Side - Logo */}
-            <div className="flex flex-col items-center justify-center bg-gradient-to-br from-[#e0f7fa]/50 to-[#b2ebf2]/30 p-8 lg:w-2/5 lg:p-12">
-              <div className="flex flex-col items-center">
-                <Image
-                  src="/images/utb-logo-original.svg"
-                  alt="UTB Logo"
-                  width={200}
-                  height={100}
-                  className="mb-4 h-20 w-auto lg:h-24"
-                />
-                <h2 className="text-center text-lg font-semibold text-[#1a1a2e]">
-                  Universidad Tecnológica
-                </h2>
-                <p className="text-center text-lg font-semibold text-[#1a1a2e]">
-                  de Bolívar
-                </p>
-              </div>
-              <div className="mt-12 grid grid-cols-2 gap-1">
-                {[...Array(8)].map((_, i) => (
-                  <div key={i} className="h-2 w-2 rounded-sm bg-[#1BB9EB]" />
-                ))}
-              </div>
+      {/* HUD grid overlay */}
+      <div
+        className="absolute inset-0 pointer-events-none"
+        style={{
+          backgroundImage:
+            "linear-gradient(rgba(27,185,235,0.04) 1px, transparent 1px), linear-gradient(90deg, rgba(27,185,235,0.04) 1px, transparent 1px)",
+          backgroundSize: "32px 32px",
+        }}
+      />
+
+      {/* Diagonal accent bar — top left */}
+      <div
+        className="absolute top-0 left-0 pointer-events-none"
+        style={{
+          width: "360px",
+          height: "4px",
+          background:
+            "linear-gradient(90deg, var(--utb-cyan), var(--utb-emerald), transparent)",
+        }}
+      />
+      <div
+        className="absolute top-0 left-0 pointer-events-none"
+        style={{
+          width: "4px",
+          height: "180px",
+          background: "linear-gradient(180deg, var(--utb-cyan), transparent)",
+        }}
+      />
+
+      {/* Bottom right accent */}
+      <div
+        className="absolute bottom-0 right-0 pointer-events-none"
+        style={{
+          width: "240px",
+          height: "2px",
+          background:
+            "linear-gradient(270deg, var(--utb-emerald), transparent)",
+        }}
+      />
+
+      {/* System tag */}
+      <div
+        className="absolute top-5 right-6 flex items-center gap-2 pointer-events-none"
+        style={{
+          fontFamily: "var(--font-mono)",
+          fontSize: "9px",
+          letterSpacing: "0.14em",
+          color: "var(--surface-4)",
+        }}
+      >
+        <div
+          className="h-1.5 w-1.5 rounded-full"
+          style={{
+            background: "var(--utb-emerald)",
+            boxShadow: "0 0 6px var(--utb-emerald)",
+          }}
+        />
+        UTB · SPS · v2.0
+      </div>
+
+      {/* Main card */}
+      <div
+        className="relative z-10 w-full max-w-3xl mx-4 overflow-hidden"
+        style={{
+          background: "var(--surface-1)",
+          clipPath:
+            "polygon(20px 0%, 100% 0%, 100% calc(100% - 20px), calc(100% - 20px) 100%, 0% 100%, 0% 20px)",
+          border: "1px solid var(--surface-3)",
+          boxShadow:
+            "0 0 40px rgba(27,185,235,0.08), 0 20px 60px rgba(10,14,26,0.12)",
+        }}
+      >
+        {/* Top accent line */}
+        <div
+          style={{
+            height: "2px",
+            background:
+              "linear-gradient(90deg, var(--utb-cyan) 0%, var(--utb-emerald) 50%, transparent 100%)",
+          }}
+        />
+
+        <div className="flex flex-col lg:flex-row">
+          {/* ── Left panel — branding ──────────────────────────── */}
+          <div
+            className="relative flex flex-col items-center justify-center p-8 lg:w-[42%] lg:p-10"
+            style={{
+              background:
+                "linear-gradient(160deg, rgba(27,185,235,0.06) 0%, rgba(100,237,42,0.04) 100%)",
+              borderRight: "1px solid var(--surface-3)",
+            }}
+          >
+            {/* Corner bracket decorations */}
+            <span
+              className="absolute"
+              style={{
+                top: "12px",
+                left: "12px",
+                width: "14px",
+                height: "14px",
+                borderTop: "1px solid var(--utb-cyan)",
+                borderLeft: "1px solid var(--utb-cyan)",
+                opacity: 0.5,
+              }}
+            />
+            <span
+              className="absolute"
+              style={{
+                bottom: "12px",
+                right: "12px",
+                width: "14px",
+                height: "14px",
+                borderBottom: "1px solid var(--utb-emerald)",
+                borderRight: "1px solid var(--utb-emerald)",
+                opacity: 0.5,
+              }}
+            />
+
+            {/* Logo */}
+            <div className="mb-6">
+              <Image
+                src="/images/utb-logo-original.svg"
+                alt="UTB"
+                width={120}
+                height={60}
+                className="h-14 w-auto opacity-90"
+              />
             </div>
 
-            {/* Right Side - Form */}
-            <div className="flex flex-col justify-center p-8 lg:w-3/5 lg:p-12">
-              <div className="mx-auto w-full max-w-sm">
-                <h1 className="mb-2 text-3xl font-bold text-[#1a1a2e] lg:text-4xl">
-                  Student Progress
+            {/* University name */}
+            <div className="text-center mb-8">
+              <p
+                style={{
+                  fontFamily: "var(--font-display)",
+                  fontSize: "0.95rem",
+                  fontWeight: 700,
+                  letterSpacing: "0.06em",
+                  textTransform: "uppercase",
+                  color: "var(--text-primary)",
+                  lineHeight: 1.3,
+                }}
+              >
+                Universidad
+                <br />
+                Tecnológica
+                <br />
+                de Bolívar
+              </p>
+            </div>
+
+            {/* System name block */}
+            <div
+              style={{
+                border: "1px solid var(--surface-3)",
+                clipPath: "var(--clip-corner-sm)",
+                padding: "0.875rem 1.25rem",
+                background: "var(--surface-1)",
+                textAlign: "center",
+              }}
+            >
+              <p
+                style={{
+                  fontFamily: "var(--font-mono)",
+                  fontSize: "8px",
+                  letterSpacing: "0.2em",
+                  color: "var(--utb-cyan)",
+                  textTransform: "uppercase",
+                  marginBottom: "4px",
+                }}
+              >
+                Sistema Académico
+              </p>
+              <p
+                style={{
+                  fontFamily: "var(--font-display)",
+                  fontSize: "1rem",
+                  fontWeight: 800,
+                  letterSpacing: "0.08em",
+                  textTransform: "uppercase",
+                  color: "var(--text-primary)",
+                }}
+              >
+                Student Progress System
+              </p>
+              <div
+                className="mt-2 mx-auto"
+                style={{
+                  height: "2px",
+                  width: "40px",
+                  background:
+                    "linear-gradient(90deg, var(--utb-cyan), var(--utb-emerald))",
+                }}
+              />
+            </div>
+
+            {/* Decorative dots grid */}
+            <div className="mt-8 grid grid-cols-4 gap-2 opacity-30">
+              {Array.from({ length: 16 }).map((_, i) => (
+                <div
+                  key={i}
+                  style={{
+                    width: "4px",
+                    height: "4px",
+                    clipPath: "var(--clip-corner-sm)",
+                    background:
+                      i % 3 === 0 ? "var(--utb-cyan)" : "var(--surface-3)",
+                  }}
+                />
+              ))}
+            </div>
+          </div>
+
+          {/* ── Right panel — form ─────────────────────────────── */}
+          <div className="flex flex-col justify-center p-8 lg:flex-1 lg:p-10">
+            {/* Form heading */}
+            <div className="mb-7">
+              <div className="flex items-center gap-2 mb-2">
+                <div
+                  style={{
+                    width: "3px",
+                    height: "20px",
+                    background:
+                      "linear-gradient(180deg, var(--utb-cyan), var(--utb-emerald))",
+                  }}
+                />
+                <h1
+                  style={{
+                    fontFamily: "var(--font-display)",
+                    fontSize: "1.4rem",
+                    fontWeight: 900,
+                    letterSpacing: "0.06em",
+                    textTransform: "uppercase",
+                    color: "var(--text-primary)",
+                  }}
+                >
+                  Acceso al Sistema
                 </h1>
-                <p className="mb-8 text-[#1a1a2e]/70">
-                  Sistema de Progreso Académico
+              </div>
+              <p
+                style={{
+                  fontFamily: "var(--font-mono)",
+                  fontSize: "10px",
+                  letterSpacing: "0.12em",
+                  color: "var(--text-muted)",
+                  paddingLeft: "11px",
+                }}
+              >
+                Ingresa tus credenciales institucionales
+              </p>
+            </div>
+
+            {/* Error */}
+            {error && (
+              <div
+                className="mb-5 flex items-center gap-2"
+                style={{
+                  border: "1px solid rgba(220,38,38,0.35)",
+                  background: "rgba(220,38,38,0.06)",
+                  clipPath: "var(--clip-corner-sm)",
+                  padding: "0.625rem 0.875rem",
+                }}
+              >
+                <div
+                  style={{
+                    width: "2px",
+                    height: "100%",
+                    background: "#DC2626",
+                    flexShrink: 0,
+                    alignSelf: "stretch",
+                  }}
+                />
+                <p
+                  style={{
+                    fontFamily: "var(--font-mono)",
+                    fontSize: "11px",
+                    letterSpacing: "0.05em",
+                    color: "#DC2626",
+                  }}
+                >
+                  {error}
                 </p>
+              </div>
+            )}
 
-                <div className="mb-8 flex items-center gap-4">
-                  <span className="font-semibold text-[#1BB9EB]">
-                    Iniciar sesión
-                  </span>
-                  <div className="h-px flex-1 bg-[#1BB9EB]/30" />
-                  <div className="h-3 w-3 rounded-full bg-[#1BB9EB]" />
+            <form onSubmit={handleSubmit} className="space-y-4">
+              {/* Email field */}
+              <div>
+                <label
+                  htmlFor="email"
+                  style={{
+                    display: "block",
+                    fontFamily: "var(--font-mono)",
+                    fontSize: "9px",
+                    letterSpacing: "0.18em",
+                    textTransform: "uppercase",
+                    color: "var(--utb-cyan)",
+                    marginBottom: "6px",
+                  }}
+                >
+                  Correo Institucional
+                </label>
+                <div
+                  className="flex items-center gap-3"
+                  style={{
+                    background: "var(--surface-2)",
+                    border: "1px solid var(--surface-3)",
+                    clipPath: "var(--clip-corner-sm)",
+                    padding: "0.75rem 1rem",
+                    transition: "border-color 0.15s ease",
+                  }}
+                  onFocus={() => {}}
+                >
+                  <Mail
+                    className="h-4 w-4 flex-shrink-0"
+                    style={{ color: "var(--utb-cyan)" }}
+                  />
+                  <input
+                    id="email"
+                    type="email"
+                    value={email}
+                    onChange={(e) => {
+                      setEmail(e.target.value);
+                      setError("");
+                    }}
+                    placeholder="usuario@utb.edu.co"
+                    required
+                    style={{
+                      flex: 1,
+                      background: "transparent",
+                      border: "none",
+                      outline: "none",
+                      fontFamily: "var(--font-body)",
+                      fontSize: "0.875rem",
+                      color: "var(--text-primary)",
+                    }}
+                  />
                 </div>
+              </div>
 
-                {/* Error message */}
-                {error && (
-                  <div className="mb-6 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600">
-                    {error}
-                  </div>
-                )}
-
-                <form onSubmit={handleSubmit} className="space-y-6">
-                  {/* Email */}
-                  <div className="relative rounded-xl border border-gray-200 bg-white p-4 transition-all focus-within:border-[#1BB9EB] focus-within:shadow-sm">
-                    <div className="flex items-start gap-4">
-                      <Mail className="mt-1 h-5 w-5 text-[#1a1a2e]/40" />
-                      <div className="flex-1">
-                        <label className="mb-1 block text-xs font-medium uppercase tracking-wider text-[#1a1a2e]/50">
-                          Correo institucional
-                        </label>
-                        <input
-                          type="email"
-                          value={email}
-                          onChange={(e) => {
-                            setEmail(e.target.value);
-                            setError("");
-                          }}
-                          placeholder="usuario@utb.edu.co"
-                          required
-                          className="w-full bg-transparent text-[#1a1a2e] placeholder-[#1a1a2e]/40 outline-none"
-                        />
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Password */}
-                  <div className="relative rounded-xl border border-gray-200 bg-white p-4 transition-all focus-within:border-[#1BB9EB] focus-within:shadow-sm">
-                    <div className="flex items-start gap-4">
-                      <Lock className="mt-1 h-5 w-5 text-[#1a1a2e]/40" />
-                      <div className="flex-1">
-                        <label className="mb-1 block text-xs font-medium uppercase tracking-wider text-[#1a1a2e]/50">
-                          Contraseña
-                        </label>
-                        <div className="flex items-center">
-                          <input
-                            type={showPassword ? "text" : "password"}
-                            value={password}
-                            onChange={(e) => {
-                              setPassword(e.target.value);
-                              setError("");
-                            }}
-                            placeholder="••••••••"
-                            required
-                            className="w-full bg-transparent text-[#1a1a2e] placeholder-[#1a1a2e]/40 outline-none"
-                          />
-                          <button
-                            type="button"
-                            onClick={() => setShowPassword(!showPassword)}
-                            className="text-[#1a1a2e]/40 hover:text-[#1a1a2e]"
-                          >
-                            {showPassword ? (
-                              <EyeOff className="h-5 w-5" />
-                            ) : (
-                              <Eye className="h-5 w-5" />
-                            )}
-                          </button>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Remember me & forgot */}
-                  <div className="flex items-center justify-between">
-                    <label className="flex cursor-pointer items-center gap-2">
-                      <input
-                        type="checkbox"
-                        checked={rememberMe}
-                        onChange={(e) => setRememberMe(e.target.checked)}
-                        className="h-4 w-4 rounded border-gray-300 text-[#1BB9EB] focus:ring-[#1BB9EB]"
-                      />
-                      <span className="text-sm text-[#1a1a2e]/70">
-                        Recordarme
-                      </span>
-                    </label>
-                    <Link
-                      href="#"
-                      className="text-sm font-medium text-[#1BB9EB] hover:underline"
-                    >
-                      ¿Olvidaste tu contraseña?
-                    </Link>
-                  </div>
-
-                  {/* Submit */}
+              {/* Password field */}
+              <div>
+                <label
+                  htmlFor="password"
+                  style={{
+                    display: "block",
+                    fontFamily: "var(--font-mono)",
+                    fontSize: "9px",
+                    letterSpacing: "0.18em",
+                    textTransform: "uppercase",
+                    color: "var(--utb-cyan)",
+                    marginBottom: "6px",
+                  }}
+                >
+                  Contraseña
+                </label>
+                <div
+                  className="flex items-center gap-3"
+                  style={{
+                    background: "var(--surface-2)",
+                    border: "1px solid var(--surface-3)",
+                    clipPath: "var(--clip-corner-sm)",
+                    padding: "0.75rem 1rem",
+                  }}
+                >
+                  <Lock
+                    className="h-4 w-4 flex-shrink-0"
+                    style={{ color: "var(--utb-cyan)" }}
+                  />
+                  <input
+                    id="password"
+                    type={showPassword ? "text" : "password"}
+                    value={password}
+                    onChange={(e) => {
+                      setPassword(e.target.value);
+                      setError("");
+                    }}
+                    placeholder="••••••••"
+                    required
+                    style={{
+                      flex: 1,
+                      background: "transparent",
+                      border: "none",
+                      outline: "none",
+                      fontFamily: "var(--font-body)",
+                      fontSize: "0.875rem",
+                      color: "var(--text-primary)",
+                    }}
+                  />
                   <button
-                    type="submit"
-                    disabled={loading}
-                    className="group flex w-full items-center justify-center gap-3 rounded-xl bg-gradient-to-r from-[#1BB9EB] to-[#0891b2] py-4 font-semibold text-white transition-all hover:from-[#0891b2] hover:to-[#1BB9EB] hover:shadow-lg disabled:opacity-60 disabled:cursor-not-allowed"
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    style={{
+                      color: "var(--text-muted)",
+                      background: "none",
+                      border: "none",
+                      cursor: "pointer",
+                    }}
                   >
-                    {loading ? (
-                      <>
-                        <svg
-                          className="h-5 w-5 animate-spin"
-                          viewBox="0 0 24 24"
-                          fill="none"
-                        >
-                          <circle
-                            className="opacity-25"
-                            cx="12"
-                            cy="12"
-                            r="10"
-                            stroke="currentColor"
-                            strokeWidth="4"
-                          />
-                          <path
-                            className="opacity-75"
-                            fill="currentColor"
-                            d="M4 12a8 8 0 018-8v4l3-3-3-3v4a8 8 0 00-8 8h4z"
-                          />
-                        </svg>
-                        Verificando...
-                      </>
+                    {showPassword ? (
+                      <EyeOff className="h-4 w-4" />
                     ) : (
-                      <>
-                        Iniciar sesión
-                        <ArrowRight className="h-5 w-5 transition-transform group-hover:translate-x-1" />
-                      </>
+                      <Eye className="h-4 w-4" />
                     )}
                   </button>
-                </form>
-
-                <div className="mt-8 text-center text-xs text-[#1a1a2e]/50">
-                  <p>© 2026 Universidad Tecnológica de Bolívar</p>
-                  <p>Todos los derechos reservados.</p>
                 </div>
+              </div>
+
+              {/* Remember + forgot */}
+              <div className="flex items-center justify-between">
+                <label className="flex cursor-pointer items-center gap-2">
+                  <input
+                    type="checkbox"
+                    checked={rememberMe}
+                    onChange={(e) => setRememberMe(e.target.checked)}
+                    style={{
+                      accentColor: "var(--utb-cyan)",
+                      width: "13px",
+                      height: "13px",
+                    }}
+                  />
+                  <span
+                    style={{
+                      fontFamily: "var(--font-mono)",
+                      fontSize: "10px",
+                      letterSpacing: "0.08em",
+                      color: "var(--text-muted)",
+                    }}
+                  >
+                    Recordarme
+                  </span>
+                </label>
+              </div>
+
+              {/* Submit */}
+              <button
+                type="submit"
+                disabled={loading}
+                className="btn-hud-solid w-full"
+                style={{
+                  justifyContent: "center",
+                  padding: "0.875rem",
+                  fontSize: "0.8rem",
+                  opacity: loading ? 0.7 : 1,
+                  cursor: loading ? "not-allowed" : "pointer",
+                }}
+              >
+                {loading ? (
+                  <>
+                    <svg
+                      className="h-4 w-4 animate-spin"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                    >
+                      <circle
+                        className="opacity-25"
+                        cx="12"
+                        cy="12"
+                        r="10"
+                        stroke="currentColor"
+                        strokeWidth="3"
+                      />
+                      <path
+                        className="opacity-75"
+                        fill="currentColor"
+                        d="M4 12a8 8 0 018-8v4l3-3-3-3v4a8 8 0 00-8 8h4z"
+                      />
+                    </svg>
+                    Verificando acceso...
+                  </>
+                ) : (
+                  <>
+                    Iniciar Sesión
+                    <ArrowRight className="h-4 w-4" />
+                  </>
+                )}
+              </button>
+            </form>
+
+            {/* Footer */}
+            <div
+              className="mt-7 pt-5"
+              style={{ borderTop: "1px solid var(--surface-3)" }}
+            >
+              <div className="flex items-center gap-2">
+                <Shield
+                  className="h-3 w-3"
+                  style={{ color: "var(--surface-4)" }}
+                />
+                <p
+                  style={{
+                    fontFamily: "var(--font-mono)",
+                    fontSize: "9px",
+                    letterSpacing: "0.10em",
+                    color: "var(--surface-4)",
+                  }}
+                >
+                  © 2026 Universidad Tecnológica de Bolívar · Todos los derechos
+                  reservados
+                </p>
               </div>
             </div>
           </div>
         </div>
+
+        {/* Bottom accent line */}
+        <div
+          style={{
+            height: "1px",
+            background:
+              "linear-gradient(90deg, transparent, var(--utb-emerald) 60%, transparent)",
+            opacity: 0.6,
+          }}
+        />
       </div>
     </main>
   );

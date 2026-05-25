@@ -1,5 +1,10 @@
 "use client";
 
+/**
+ * /dashboard/quests — Marathon × UTB Design System
+ * Solo cambios visuales. Lógica, hooks y estado sin modificar.
+ */
+
 import { useState } from "react";
 import { useQuestProfile } from "../../../hooks/useQuestProfile";
 import type {
@@ -14,66 +19,91 @@ import {
   Lock,
   CheckCircle2,
   Circle,
-  Sparkles,
   Shield,
   Zap,
+  Target,
 } from "lucide-react";
 
-// ─── Skeleton ────────────────────────────────────────────────────────────────
+// ── Primitives ─────────────────────────────────────────────
 
-function Skeleton({ className }: { className: string }) {
+function HudSkeleton({ style = {} }: { style?: React.CSSProperties }) {
   return (
-    <div className={`animate-pulse rounded bg-[#1a1a2e]/10 ${className}`} />
+    <div
+      className="hud-skeleton"
+      style={{ height: "1rem", borderRadius: "2px", ...style }}
+    />
   );
 }
 
-// ─── Progress bar ─────────────────────────────────────────────────────────────
-
-function ProgressBar({
+function HudProgress({
   pct,
-  color,
+  color = "var(--utb-cyan)",
   thin = false,
 }: {
   pct: number;
-  color: string;
+  color?: string;
   thin?: boolean;
 }) {
   return (
     <div
-      className={`w-full overflow-hidden rounded-full bg-[#1a1a2e]/10 ${thin ? "h-1.5" : "h-2.5"}`}
+      className="hud-progress w-full"
+      style={{ height: thin ? "2px" : "3px" }}
     >
       <div
-        className={`h-full rounded-full transition-all duration-700 ${color}`}
-        style={{ width: `${pct}%` }}
+        className="hud-progress-fill"
+        style={{
+          width: `${Math.min(pct, 100)}%`,
+          background: `linear-gradient(90deg, ${color}, var(--utb-emerald))`,
+        }}
       />
     </div>
   );
 }
 
-// ─── Step list ────────────────────────────────────────────────────────────────
+// ── Step list ──────────────────────────────────────────────
 
 function StepList({ steps }: { steps: QuestStep[] }) {
   return (
     <ol className="mt-4 space-y-2">
       {steps.map((s, i) => (
         <li key={s.id} className="flex items-start gap-3">
-          <div className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center">
+          <div className="mt-0.5 flex-shrink-0">
             {s.completed ? (
-              <CheckCircle2 className="h-5 w-5 text-[#00C853]" />
+              <CheckCircle2
+                className="h-4 w-4"
+                style={{ color: "var(--utb-savio)" }}
+              />
             ) : (
-              <Circle className="h-5 w-5 text-[#1a1a2e]/25" />
+              <Circle
+                className="h-4 w-4"
+                style={{ color: "var(--surface-3)" }}
+              />
             )}
           </div>
           <div>
             <span
-              className={`text-sm font-semibold ${
-                s.completed ? "text-[#1a1a2e]" : "text-[#1a1a2e]/40"
-              }`}
+              style={{
+                fontFamily: "var(--font-display)",
+                fontSize: "0.72rem",
+                fontWeight: 600,
+                letterSpacing: "0.04em",
+                textTransform: "uppercase",
+                color: s.completed ? "var(--text-primary)" : "var(--surface-4)",
+              }}
             >
-              {i + 1}. {s.label}
+              {String(i + 1).padStart(2, "0")}. {s.label}
             </span>
             {s.completed && (
-              <p className="text-xs text-[#1a1a2e]/50">{s.description}</p>
+              <p
+                style={{
+                  fontFamily: "var(--font-body)",
+                  fontSize: "0.68rem",
+                  color: "var(--text-muted)",
+                  marginTop: "2px",
+                }}
+              >
+                {s.description}
+              </p>
             )}
           </div>
         </li>
@@ -82,155 +112,252 @@ function StepList({ steps }: { steps: QuestStep[] }) {
   );
 }
 
-// ─── Main Quest Card ──────────────────────────────────────────────────────────
+// ── Main Quest Card ────────────────────────────────────────
+
+const QUEST_ACCENTS: Record<string, { line: string; bar: string }> = {
+  "camino-programador": { line: "var(--utb-savio)", bar: "var(--utb-savio)" },
+  "ruta-cientifica": { line: "var(--utb-cyan)", bar: "var(--utb-cyan)" },
+  "saga-ingeniero": { line: "#7C3AED", bar: "#7C3AED" },
+};
 
 function MainQuestCard({ quest }: { quest: Quest }) {
   const [expanded, setExpanded] = useState(false);
-
-  const accentBg =
-    quest.id === "camino-programador"
-      ? "bg-emerald-500"
-      : quest.id === "ruta-cientifica"
-        ? "bg-blue-500"
-        : "bg-purple-600";
-
-  const progressColor =
-    quest.id === "camino-programador"
-      ? "bg-emerald-400"
-      : quest.id === "ruta-cientifica"
-        ? "bg-blue-400"
-        : "bg-purple-400";
+  const { line, bar } = QUEST_ACCENTS[quest.id] ?? {
+    line: "var(--utb-cyan)",
+    bar: "var(--utb-cyan)",
+  };
 
   return (
     <div
-      className={`overflow-hidden rounded-2xl border bg-white/90 shadow-sm backdrop-blur-sm transition-all duration-300 ${
-        quest.completed
-          ? "border-[#00C853]/40 shadow-[#00C853]/10"
-          : "border-[#1a1a2e]/10"
-      }`}
+      style={{
+        position: "relative",
+        clipPath: "var(--clip-corner)",
+        background: "var(--surface-1)",
+        border: `1px solid ${quest.completed ? `${line}50` : "var(--surface-3)"}`,
+        overflow: "hidden",
+        boxShadow: quest.completed ? `0 0 20px ${line}10` : "none",
+      }}
     >
+      {/* Top accent */}
+      <div
+        style={{
+          height: "2px",
+          background: `linear-gradient(90deg, ${line}, transparent)`,
+        }}
+      />
+
       {/* Header strip */}
-      <div className={`${accentBg} px-5 py-3`}>
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <span className="text-lg">{quest.icon}</span>
-            <div>
-              <p className="text-xs font-bold uppercase tracking-widest text-white/70">
-                Main Quest
-              </p>
-              <h3 className="font-bold text-white">{quest.title}</h3>
-            </div>
+      <div
+        className="flex items-center justify-between px-4 py-3"
+        style={{
+          background: `${line}08`,
+          borderBottom: "1px solid var(--surface-3)",
+        }}
+      >
+        <div className="flex items-center gap-2.5">
+          <span style={{ fontSize: "1rem" }}>{quest.icon}</span>
+          <div>
+            <p className="hud-label" style={{ color: line, fontSize: "9px" }}>
+              MAIN QUEST
+            </p>
+            <h3
+              style={{
+                fontFamily: "var(--font-display)",
+                fontSize: "0.8rem",
+                fontWeight: 800,
+                letterSpacing: "0.06em",
+                textTransform: "uppercase",
+                color: "var(--text-primary)",
+              }}
+            >
+              {quest.title}
+            </h3>
           </div>
-          {quest.completed && (
-            <div className="flex items-center gap-1 rounded-full bg-white/20 px-3 py-1 text-xs font-bold text-white">
-              <CheckCircle2 className="h-3.5 w-3.5" />
-              Completada
-            </div>
-          )}
         </div>
+        {quest.completed && (
+          <div
+            className="flex items-center gap-1"
+            style={{
+              fontFamily: "var(--font-mono)",
+              fontSize: "9px",
+              letterSpacing: "0.12em",
+              color: line,
+              border: `1px solid ${line}40`,
+              clipPath: "var(--clip-corner-sm)",
+              padding: "3px 8px",
+            }}
+          >
+            <CheckCircle2 className="h-3 w-3" />
+            COMPLETADA
+          </div>
+        )}
       </div>
 
       {/* Body */}
-      <div className="p-5">
-        <p className="mb-3 text-sm text-[#1a1a2e]/60">{quest.subtitle}</p>
+      <div className="p-4">
+        <p
+          style={{
+            fontFamily: "var(--font-body)",
+            fontSize: "0.75rem",
+            color: "var(--text-muted)",
+            marginBottom: "0.875rem",
+          }}
+        >
+          {quest.subtitle}
+        </p>
 
         {/* Progress */}
         <div className="mb-4">
-          <div className="mb-1.5 flex items-center justify-between">
-            <span className="text-xs font-medium text-[#1a1a2e]/50">
+          <div className="flex items-center justify-between mb-1.5">
+            <span className="hud-label" style={{ color: "var(--text-muted)" }}>
               {quest.completedSteps}/{quest.totalSteps} etapas
             </span>
-            <span className="text-xs font-bold text-[#1a1a2e]">
+            <span
+              style={{
+                fontFamily: "var(--font-display)",
+                fontSize: "0.85rem",
+                fontWeight: 700,
+                color: line,
+              }}
+            >
               {quest.percentComplete}%
             </span>
           </div>
-          <ProgressBar pct={quest.percentComplete} color={progressColor} />
+          <HudProgress pct={quest.percentComplete} color={bar} />
         </div>
 
-        {/* Reward title preview */}
+        {/* Reward title */}
         {quest.rewardTitle && (
-          <div className="mb-4 flex items-center gap-2 rounded-xl border border-[#C2F542]/40 bg-[#C2F542]/10 px-3 py-2">
-            <Sparkles className="h-4 w-4 shrink-0 text-[#1a1a2e]/60" />
-            <span className="text-xs font-semibold text-[#1a1a2e]/70">
+          <div
+            className="flex items-center gap-2 mb-4"
+            style={{
+              border: "1px solid var(--surface-3)",
+              clipPath: "var(--clip-corner-sm)",
+              padding: "0.5rem 0.75rem",
+              background: "var(--surface-2)",
+            }}
+          >
+            <Zap
+              className="h-3.5 w-3.5 flex-shrink-0"
+              style={{ color: "var(--utb-emerald)" }}
+            />
+            <span
+              style={{
+                fontFamily: "var(--font-mono)",
+                fontSize: "10px",
+                letterSpacing: "0.06em",
+                color: "var(--text-secondary)",
+              }}
+            >
               {quest.completed ? "Título obtenido:" : "Título actual:"}{" "}
-              <span className="font-bold text-[#1a1a2e]">
+              <span style={{ fontWeight: 700, color: "var(--text-primary)" }}>
                 "{quest.rewardTitle}"
               </span>
             </span>
           </div>
         )}
 
-        {/* Expand toggle */}
+        {/* Toggle */}
         <button
           onClick={() => setExpanded(!expanded)}
-          className="flex w-full items-center justify-between rounded-xl border border-[#1a1a2e]/10 bg-[#1a1a2e]/5 px-4 py-2.5 text-sm font-medium text-[#1a1a2e]/60 transition-all hover:bg-[#1a1a2e]/10"
+          className="btn-hud w-full"
+          style={{
+            justifyContent: "space-between",
+            padding: "0.5rem 0.75rem",
+            fontSize: "10px",
+          }}
         >
           <span>Ver etapas</span>
           {expanded ? (
-            <ChevronUp className="h-4 w-4" />
+            <ChevronUp className="h-3.5 w-3.5" />
           ) : (
-            <ChevronDown className="h-4 w-4" />
+            <ChevronDown className="h-3.5 w-3.5" />
           )}
         </button>
 
         {expanded && <StepList steps={quest.steps} />}
       </div>
+
+      {/* Corner brackets */}
+      <span
+        style={{
+          position: "absolute",
+          bottom: "6px",
+          right: "6px",
+          width: "8px",
+          height: "8px",
+          borderBottom: `1px solid ${line}50`,
+          borderRight: `1px solid ${line}50`,
+        }}
+      />
     </div>
   );
 }
 
-// ─── Skill Tree Card ──────────────────────────────────────────────────────────
+// ── Skill Tree Card ────────────────────────────────────────
+
+const TREE_ACCENTS: Record<string, string> = {
+  "bg-cyan-500": "var(--utb-cyan)",
+  "bg-violet-500": "#7C3AED",
+  "bg-orange-500": "var(--utb-aqua)",
+};
 
 function SkillTreeCard({ tree }: { tree: SkillTree }) {
   const [expanded, setExpanded] = useState(false);
-
-  const colorMap: Record<
-    string,
-    { bar: string; badge: string; border: string }
-  > = {
-    "bg-cyan-500": {
-      bar: "bg-cyan-400",
-      badge: "bg-cyan-100 text-cyan-700 border-cyan-200",
-      border: "border-cyan-200",
-    },
-    "bg-violet-500": {
-      bar: "bg-violet-400",
-      badge: "bg-violet-100 text-violet-700 border-violet-200",
-      border: "border-violet-200",
-    },
-    "bg-orange-500": {
-      bar: "bg-orange-400",
-      badge: "bg-orange-100 text-orange-700 border-orange-200",
-      border: "border-orange-200",
-    },
-  };
-
-  const colors = colorMap[tree.color] ?? {
-    bar: "bg-gray-400",
-    badge: "bg-gray-100 text-gray-700 border-gray-200",
-    border: "border-gray-200",
-  };
+  const accent = TREE_ACCENTS[tree.color] ?? "var(--utb-cyan)";
 
   return (
     <div
-      className={`overflow-hidden rounded-2xl border bg-white/90 shadow-sm backdrop-blur-sm ${
-        tree.completed ? colors.border : "border-[#1a1a2e]/10"
-      }`}
+      style={{
+        position: "relative",
+        clipPath: "var(--clip-corner-sm)",
+        background: "var(--surface-1)",
+        border: `1px solid ${tree.completed ? `${accent}45` : "var(--surface-3)"}`,
+        overflow: "hidden",
+      }}
     >
-      <div className="p-5">
-        <div className="mb-3 flex items-start justify-between gap-2">
+      {/* Accent top */}
+      <div
+        style={{
+          height: "2px",
+          background: `linear-gradient(90deg, ${accent}, transparent)`,
+        }}
+      />
+
+      <div className="p-4">
+        <div className="flex items-start justify-between gap-2 mb-3">
           <div className="flex items-center gap-2">
-            <span className="text-xl">{tree.icon}</span>
+            <span style={{ fontSize: "1.1rem" }}>{tree.icon}</span>
             <div>
-              <p className="text-xs font-bold uppercase tracking-widest text-[#1a1a2e]/40">
-                Skill Tree
+              <p
+                className="hud-label"
+                style={{ color: "var(--text-muted)", fontSize: "9px" }}
+              >
+                SKILL TREE
               </p>
-              <h3 className="font-bold text-[#1a1a2e]">{tree.title}</h3>
+              <h3
+                style={{
+                  fontFamily: "var(--font-display)",
+                  fontSize: "0.75rem",
+                  fontWeight: 800,
+                  letterSpacing: "0.05em",
+                  textTransform: "uppercase",
+                  color: "var(--text-primary)",
+                }}
+              >
+                {tree.title}
+              </h3>
             </div>
           </div>
           {tree.completed && (
             <span
-              className={`shrink-0 rounded-full border px-2 py-0.5 text-xs font-bold ${colors.badge}`}
+              className="tier-badge"
+              style={{
+                background: `${accent}12`,
+                color: accent,
+                borderColor: `${accent}35`,
+                flexShrink: 0,
+              }}
             >
               ✓ {tree.specialty}
             </span>
@@ -238,32 +365,56 @@ function SkillTreeCard({ tree }: { tree: SkillTree }) {
         </div>
 
         {!tree.completed && (
-          <p className="mb-3 text-xs text-[#1a1a2e]/50">
-            Completa las materias para obtener:{" "}
-            <span className="font-semibold">"{tree.specialty}"</span>
+          <p
+            style={{
+              fontFamily: "var(--font-body)",
+              fontSize: "0.7rem",
+              color: "var(--text-muted)",
+              marginBottom: "0.75rem",
+            }}
+          >
+            Obtén:{" "}
+            <span style={{ fontWeight: 600, color: "var(--text-secondary)" }}>
+              "{tree.specialty}"
+            </span>
           </p>
         )}
 
-        <div className="mb-1.5 flex items-center justify-between">
-          <span className="text-xs text-[#1a1a2e]/40">
+        <div className="flex items-center justify-between mb-1.5">
+          <span className="hud-label" style={{ color: "var(--text-muted)" }}>
             {tree.completedSteps}/{tree.totalSteps}
           </span>
-          <span className="text-xs font-bold text-[#1a1a2e]">
+          <span
+            style={{
+              fontFamily: "var(--font-display)",
+              fontSize: "0.8rem",
+              fontWeight: 700,
+              color: accent,
+            }}
+          >
             {tree.percentComplete}%
           </span>
         </div>
-        <ProgressBar pct={tree.percentComplete} color={colors.bar} thin />
+        <HudProgress pct={tree.percentComplete} color={accent} thin />
 
-        {/* Mini steps */}
         <button
           onClick={() => setExpanded(!expanded)}
-          className="mt-3 flex w-full items-center justify-between text-xs text-[#1a1a2e]/40 hover:text-[#1a1a2e]/60"
+          className="flex w-full items-center justify-between mt-3"
+          style={{
+            fontFamily: "var(--font-mono)",
+            fontSize: "10px",
+            letterSpacing: "0.08em",
+            color: "var(--text-muted)",
+            background: "none",
+            border: "none",
+            cursor: "pointer",
+          }}
         >
           <span>Materias del árbol</span>
           {expanded ? (
-            <ChevronUp className="h-3.5 w-3.5" />
+            <ChevronUp className="h-3 w-3" />
           ) : (
-            <ChevronDown className="h-3.5 w-3.5" />
+            <ChevronDown className="h-3 w-3" />
           )}
         </button>
 
@@ -272,16 +423,24 @@ function SkillTreeCard({ tree }: { tree: SkillTree }) {
             {tree.steps.map((s, i) => (
               <li key={s.id} className="flex items-center gap-2">
                 {s.completed ? (
-                  <CheckCircle2 className="h-4 w-4 shrink-0 text-[#00C853]" />
+                  <CheckCircle2
+                    className="h-3.5 w-3.5 flex-shrink-0"
+                    style={{ color: "var(--utb-savio)" }}
+                  />
                 ) : (
-                  <Circle className="h-4 w-4 shrink-0 text-[#1a1a2e]/20" />
+                  <Circle
+                    className="h-3.5 w-3.5 flex-shrink-0"
+                    style={{ color: "var(--surface-3)" }}
+                  />
                 )}
                 <span
-                  className={`text-xs ${
-                    s.completed
-                      ? "font-medium text-[#1a1a2e]"
-                      : "text-[#1a1a2e]/40"
-                  }`}
+                  style={{
+                    fontFamily: "var(--font-body)",
+                    fontSize: "0.68rem",
+                    color: s.completed
+                      ? "var(--text-primary)"
+                      : "var(--surface-4)",
+                  }}
                 >
                   {i + 1}. {s.label}
                 </span>
@@ -294,74 +453,144 @@ function SkillTreeCard({ tree }: { tree: SkillTree }) {
   );
 }
 
-// ─── Secret Quest Card ────────────────────────────────────────────────────────
+// ── Secret Quest Card ──────────────────────────────────────
 
 function SecretQuestCard({ quest }: { quest: SecretQuest }) {
   const isPending = quest.id === "boss-fight";
 
   return (
     <div
-      className={`overflow-hidden rounded-2xl border bg-white/90 shadow-sm backdrop-blur-sm ${
-        quest.completed
-          ? "border-[#C2F542]/50"
+      style={{
+        position: "relative",
+        clipPath: "var(--clip-corner-sm)",
+        background: "var(--surface-1)",
+        border: quest.completed
+          ? "1px solid rgba(100,237,42,0.40)"
           : isPending
-            ? "border-[#1a1a2e]/5 opacity-50"
-            : "border-[#1a1a2e]/10"
-      }`}
+            ? "1px solid var(--surface-2)"
+            : "1px solid var(--surface-3)",
+        opacity: isPending ? 0.5 : 1,
+        overflow: "hidden",
+      }}
     >
-      <div className="p-5">
+      {quest.completed && (
+        <div
+          style={{
+            height: "2px",
+            background:
+              "linear-gradient(90deg, var(--utb-emerald), transparent)",
+          }}
+        />
+      )}
+
+      <div className="p-4">
         <div className="flex items-start gap-3">
           <div
-            className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-xl text-2xl ${
-              quest.completed ? "bg-[#C2F542]/20" : "bg-[#1a1a2e]/5"
-            }`}
+            style={{
+              flexShrink: 0,
+              width: "40px",
+              height: "40px",
+              clipPath: "var(--clip-corner-sm)",
+              background: quest.completed
+                ? "rgba(100,237,42,0.10)"
+                : "var(--surface-2)",
+              border: quest.completed
+                ? "1px solid rgba(100,237,42,0.25)"
+                : "1px solid var(--surface-3)",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              fontSize: "1.1rem",
+            }}
           >
             {isPending ? (
-              <Lock className="h-5 w-5 text-[#1a1a2e]/20" />
+              <Lock className="h-4 w-4" style={{ color: "var(--surface-4)" }} />
             ) : (
               quest.icon
             )}
           </div>
+
           <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 flex-wrap">
               <h3
-                className={`font-bold ${
-                  quest.completed ? "text-[#1a1a2e]" : "text-[#1a1a2e]/60"
-                }`}
+                style={{
+                  fontFamily: "var(--font-display)",
+                  fontSize: "0.75rem",
+                  fontWeight: 700,
+                  letterSpacing: "0.06em",
+                  textTransform: "uppercase",
+                  color: quest.completed
+                    ? "var(--text-primary)"
+                    : "var(--text-secondary)",
+                }}
               >
                 {quest.completed || !isPending ? quest.title : "???"}
               </h3>
               {quest.completed && (
-                <span className="rounded-full bg-[#C2F542]/30 px-2 py-0.5 text-[10px] font-bold text-[#1a1a2e]">
+                <span
+                  className="tier-badge"
+                  style={{
+                    background: "rgba(100,237,42,0.10)",
+                    color: "var(--utb-emerald)",
+                    borderColor: "rgba(100,237,42,0.30)",
+                  }}
+                >
                   COMPLETADO
                 </span>
               )}
             </div>
-            <p className="mt-1 text-xs text-[#1a1a2e]/50">
+            <p
+              style={{
+                fontFamily: "var(--font-body)",
+                fontSize: "0.7rem",
+                color: "var(--text-muted)",
+                marginTop: "3px",
+              }}
+            >
               {isPending ? "Próximamente disponible" : quest.description}
             </p>
 
-            {/* Progress for Perfeccionista */}
             {!isPending && quest.progress !== undefined && (
               <div className="mt-3">
-                <div className="mb-1 flex justify-between">
-                  <span className="text-[10px] text-[#1a1a2e]/40">
+                <div className="flex justify-between mb-1">
+                  <span
+                    className="hud-label"
+                    style={{ color: "var(--text-muted)" }}
+                  >
                     {quest.progressLabel}
                   </span>
-                  <span className="text-[10px] font-bold text-[#1a1a2e]">
+                  <span
+                    style={{
+                      fontFamily: "var(--font-mono)",
+                      fontSize: "10px",
+                      fontWeight: 700,
+                      color: "var(--text-secondary)",
+                    }}
+                  >
                     {quest.progress}%
                   </span>
                 </div>
-                <ProgressBar
+                <HudProgress
                   pct={quest.progress}
-                  color={quest.completed ? "bg-[#C2F542]" : "bg-amber-400"}
+                  color={
+                    quest.completed ? "var(--utb-emerald)" : "var(--utb-aqua)"
+                  }
                   thin
                 />
               </div>
             )}
 
             {!quest.completed && !isPending && (
-              <p className="mt-2 text-[10px] italic text-[#1a1a2e]/30">
+              <p
+                style={{
+                  fontFamily: "var(--font-mono)",
+                  fontSize: "9px",
+                  letterSpacing: "0.08em",
+                  color: "var(--surface-4)",
+                  marginTop: "0.5rem",
+                  fontStyle: "italic",
+                }}
+              >
                 {quest.hint}
               </p>
             )}
@@ -372,33 +601,94 @@ function SecretQuestCard({ quest }: { quest: SecretQuest }) {
   );
 }
 
-// ─── Title Badge ──────────────────────────────────────────────────────────────
+// ── Title Badge ────────────────────────────────────────────
 
-const TITLE_STYLES: Record<string, string> = {
-  Aprendiz: "bg-emerald-100 text-emerald-800 border-emerald-200",
-  Desarrollador: "bg-blue-100 text-blue-800 border-blue-200",
-  "Arquitecto del Código": "bg-purple-100 text-purple-800 border-purple-200",
-  "Científico Formado": "bg-sky-100 text-sky-800 border-sky-200",
-  "Ingeniero de Sistemas": "bg-indigo-100 text-indigo-800 border-indigo-200",
-  "Network Specialist": "bg-cyan-100 text-cyan-800 border-cyan-200",
-  "AI Initiate": "bg-violet-100 text-violet-800 border-violet-200",
-  "Backend Engineer": "bg-orange-100 text-orange-800 border-orange-200",
+const TITLE_STYLES: Record<
+  string,
+  { bg: string; color: string; border: string }
+> = {
+  Aprendiz: {
+    bg: "rgba(18,209,145,0.08)",
+    color: "var(--utb-savio)",
+    border: "rgba(18,209,145,0.30)",
+  },
+  Desarrollador: {
+    bg: "rgba(27,185,235,0.08)",
+    color: "var(--utb-cyan)",
+    border: "rgba(27,185,235,0.30)",
+  },
+  "Arquitecto del Código": {
+    bg: "rgba(124,58,237,0.08)",
+    color: "#7C3AED",
+    border: "rgba(124,58,237,0.30)",
+  },
+  "Científico Formado": {
+    bg: "rgba(0,163,161,0.08)",
+    color: "var(--utb-aqua)",
+    border: "rgba(0,163,161,0.30)",
+  },
+  "Ingeniero de Sistemas": {
+    bg: "rgba(9,30,207,0.08)",
+    color: "var(--utb-blue)",
+    border: "rgba(9,30,207,0.30)",
+  },
+  "Network Specialist": {
+    bg: "rgba(27,185,235,0.08)",
+    color: "var(--utb-cyan)",
+    border: "rgba(27,185,235,0.30)",
+  },
+  "AI Initiate": {
+    bg: "rgba(124,58,237,0.08)",
+    color: "#7C3AED",
+    border: "rgba(124,58,237,0.30)",
+  },
+  "Backend Engineer": {
+    bg: "rgba(100,237,42,0.08)",
+    color: "var(--utb-emerald)",
+    border: "rgba(100,237,42,0.30)",
+  },
 };
 
 function TitleBadge({ title }: { title: string }) {
-  const style =
-    TITLE_STYLES[title] ?? "bg-gray-100 text-gray-700 border-gray-200";
+  const s = TITLE_STYLES[title] ?? {
+    bg: "rgba(122,139,168,0.08)",
+    color: "var(--text-muted)",
+    border: "rgba(122,139,168,0.25)",
+  };
   return (
     <span
-      className={`inline-flex items-center gap-1 rounded-full border px-3 py-1 text-xs font-bold ${style}`}
+      className="title-badge"
+      style={{ background: s.bg, color: s.color, borderColor: s.border }}
     >
-      <Shield className="h-3 w-3" />
+      <Shield className="h-2.5 w-2.5" />
       {title}
     </span>
   );
 }
 
-// ─── Main Page ────────────────────────────────────────────────────────────────
+// ── Section divider ────────────────────────────────────────
+
+function SectionDivider({ label }: { label: string }) {
+  return (
+    <div className="hud-divider my-1">
+      <div
+        className="hud-divider-line"
+        style={{
+          background: "linear-gradient(270deg, var(--utb-cyan), transparent)",
+        }}
+      />
+      <span className="hud-divider-label">{label}</span>
+      <div
+        className="hud-divider-line"
+        style={{
+          background: "linear-gradient(90deg, var(--utb-cyan), transparent)",
+        }}
+      />
+    </div>
+  );
+}
+
+// ── Page ───────────────────────────────────────────────────
 
 export default function QuestsPage() {
   const { profile, loading, error } = useQuestProfile();
@@ -406,118 +696,160 @@ export default function QuestsPage() {
   if (error) {
     return (
       <div className="flex items-center justify-center py-20">
-        <p className="text-sm text-red-500">{error}</p>
+        <div
+          style={{
+            border: "1px solid rgba(220,38,38,0.35)",
+            clipPath: "var(--clip-corner-sm)",
+            padding: "1rem 1.5rem",
+            background: "rgba(220,38,38,0.05)",
+          }}
+        >
+          <p
+            style={{
+              fontFamily: "var(--font-mono)",
+              fontSize: "11px",
+              color: "#DC2626",
+            }}
+          >
+            ERROR · {error}
+          </p>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="flex flex-col gap-8">
-      {/* ── Header ──────────────────────────────────────────────────────────── */}
-      <div>
-        <h1 className="text-2xl font-bold uppercase tracking-wide text-[#1a1a2e]">
+    <div className="flex flex-col gap-6">
+      {/* Page heading */}
+      <div className="flex items-baseline gap-3">
+        <h1
+          style={{
+            fontFamily: "var(--font-display)",
+            fontSize: "1.5rem",
+            fontWeight: 900,
+            letterSpacing: "0.12em",
+            textTransform: "uppercase",
+            color: "var(--text-primary)",
+          }}
+        >
           Quests
         </h1>
-        <p className="text-sm text-[#1a1a2e]/50">
-          Tu camino académico como aventura
-        </p>
+        <span
+          style={{
+            fontFamily: "var(--font-mono)",
+            fontSize: "10px",
+            letterSpacing: "0.12em",
+            color: "var(--text-muted)",
+          }}
+        >
+          // academic · adventure
+        </span>
       </div>
 
-      {/* ── Titles strip ─────────────────────────────────────────────────────── */}
-      <div className="rounded-2xl border border-[#1a1a2e]/10 bg-white/90 p-5 backdrop-blur-sm">
-        <div className="mb-3 flex items-center gap-2">
-          <Zap className="h-4 w-4 text-[#1a1a2e]/40" />
-          <h2 className="text-xs font-bold uppercase tracking-widest text-[#1a1a2e]/50">
-            Títulos obtenidos
-          </h2>
+      {/* Titles strip */}
+      <div className="hud-panel" style={{ padding: 0 }}>
+        <div
+          className="flex items-center gap-2 px-4 py-3"
+          style={{ borderBottom: "1px solid var(--surface-3)" }}
+        >
+          <Zap
+            className="h-3.5 w-3.5"
+            style={{ color: "var(--utb-emerald)" }}
+          />
+          <span
+            style={{
+              fontFamily: "var(--font-mono)",
+              fontSize: "9px",
+              letterSpacing: "0.18em",
+              textTransform: "uppercase",
+              color: "var(--utb-emerald)",
+            }}
+          >
+            Títulos Obtenidos
+          </span>
         </div>
-
-        {loading ? (
-          <div className="flex flex-wrap gap-2">
-            {[1, 2, 3].map((i) => (
-              <Skeleton key={i} className="h-7 w-28 rounded-full" />
-            ))}
-          </div>
-        ) : profile && profile.titles.length > 0 ? (
-          <div className="flex flex-wrap gap-2">
-            {profile.titles.map((t) => (
-              <TitleBadge key={t} title={t} />
-            ))}
-          </div>
-        ) : (
-          <p className="text-sm text-[#1a1a2e]/40">
-            Completa etapas de las quests para obtener títulos.
-          </p>
-        )}
+        <div className="p-4">
+          {loading ? (
+            <div className="flex flex-wrap gap-2">
+              {[1, 2, 3].map((i) => (
+                <HudSkeleton
+                  key={i}
+                  style={{ height: "24px", width: "100px" }}
+                />
+              ))}
+            </div>
+          ) : profile && profile.titles.length > 0 ? (
+            <div className="flex flex-wrap gap-2">
+              {profile.titles.map((t) => (
+                <TitleBadge key={t} title={t} />
+              ))}
+            </div>
+          ) : (
+            <p className="hud-label" style={{ color: "var(--text-muted)" }}>
+              Completa etapas de las quests para obtener títulos.
+            </p>
+          )}
+        </div>
       </div>
 
-      {/* ── Main Quests ───────────────────────────────────────────────────────── */}
+      {/* Main Quests */}
       <section>
-        <h2 className="mb-4 flex items-center gap-2 text-sm font-bold uppercase tracking-widest text-[#1a1a2e]/60">
-          <span className="h-px flex-1 bg-[#1a1a2e]/10" />
-          Main Quests
-          <span className="h-px flex-1 bg-[#1a1a2e]/10" />
-        </h2>
-
-        {loading ? (
-          <div className="grid grid-cols-1 gap-5 lg:grid-cols-3">
-            {[1, 2, 3].map((i) => (
-              <Skeleton key={i} className="h-48 w-full rounded-2xl" />
-            ))}
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 gap-5 lg:grid-cols-3">
-            {profile?.mainQuests.map((q) => (
-              <MainQuestCard key={q.id} quest={q} />
-            ))}
-          </div>
-        )}
+        <SectionDivider label="Main Quests" />
+        <div className="mt-4">
+          {loading ? (
+            <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
+              {[1, 2, 3].map((i) => (
+                <HudSkeleton key={i} style={{ height: "200px" }} />
+              ))}
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
+              {profile?.mainQuests.map((q) => (
+                <MainQuestCard key={q.id} quest={q} />
+              ))}
+            </div>
+          )}
+        </div>
       </section>
 
-      {/* ── Skill Trees ───────────────────────────────────────────────────────── */}
+      {/* Skill Trees */}
       <section>
-        <h2 className="mb-4 flex items-center gap-2 text-sm font-bold uppercase tracking-widest text-[#1a1a2e]/60">
-          <span className="h-px flex-1 bg-[#1a1a2e]/10" />
-          Skill Trees
-          <span className="h-px flex-1 bg-[#1a1a2e]/10" />
-        </h2>
-
-        {loading ? (
-          <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-            {[1, 2, 3].map((i) => (
-              <Skeleton key={i} className="h-32 w-full rounded-2xl" />
-            ))}
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-            {profile?.skillTrees.map((tree) => (
-              <SkillTreeCard key={tree.id} tree={tree} />
-            ))}
-          </div>
-        )}
+        <SectionDivider label="Skill Trees" />
+        <div className="mt-4">
+          {loading ? (
+            <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
+              {[1, 2, 3].map((i) => (
+                <HudSkeleton key={i} style={{ height: "140px" }} />
+              ))}
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
+              {profile?.skillTrees.map((tree) => (
+                <SkillTreeCard key={tree.id} tree={tree} />
+              ))}
+            </div>
+          )}
+        </div>
       </section>
 
-      {/* ── Secret Quests ─────────────────────────────────────────────────────── */}
+      {/* Secret Quests */}
       <section>
-        <h2 className="mb-4 flex items-center gap-2 text-sm font-bold uppercase tracking-widest text-[#1a1a2e]/60">
-          <span className="h-px flex-1 bg-[#1a1a2e]/10" />
-          Quests Secretas
-          <span className="h-px flex-1 bg-[#1a1a2e]/10" />
-        </h2>
-
-        {loading ? (
-          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-            {[1, 2].map((i) => (
-              <Skeleton key={i} className="h-28 w-full rounded-2xl" />
-            ))}
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-            {profile?.secretQuests.map((q) => (
-              <SecretQuestCard key={q.id} quest={q} />
-            ))}
-          </div>
-        )}
+        <SectionDivider label="Quests Secretas" />
+        <div className="mt-4">
+          {loading ? (
+            <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+              {[1, 2].map((i) => (
+                <HudSkeleton key={i} style={{ height: "110px" }} />
+              ))}
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+              {profile?.secretQuests.map((q) => (
+                <SecretQuestCard key={q.id} quest={q} />
+              ))}
+            </div>
+          )}
+        </div>
       </section>
     </div>
   );

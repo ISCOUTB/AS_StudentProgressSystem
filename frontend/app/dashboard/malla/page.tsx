@@ -1,19 +1,33 @@
 "use client";
 
+/**
+ * /dashboard/malla — Marathon × UTB "Ruta Académica"
+ * Solo cambios visuales. Lógica, datos curriculares y hooks sin modificar.
+ */
+
 import { Award, BookOpen, Percent, GraduationCap } from "lucide-react";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 
-// ── Category colours (unchanged) ─────────────────────────────────────────────
+// ── Category colors ────────────────────────────────────────
 const categoryColors: Record<string, string> = {
-  humanistico: "bg-yellow-400",
-  lenguaExtranjera: "bg-green-500",
-  basico: "bg-blue-400",
-  cienciasIngenieria: "bg-blue-700",
-  electivo: "bg-gray-400",
-  integrador: "bg-emerald-600",
+  humanistico: "#B45309", // amber-700 atenuado
+  lenguaExtranjera: "#065F46", // emerald-800
+  basico: "#1E40AF", // blue-800
+  cienciasIngenieria: "#1E3A8A", // blue-900
+  electivo: "#374151", // gray-700
+  integrador: "#065F46", // emerald-800
 };
 
-// ── Curriculum data (unchanged) ───────────────────────────────────────────────
+const categoryBg: Record<string, string> = {
+  humanistico: "rgba(245,158,11,0.75)",
+  lenguaExtranjera: "rgba(18,209,145,0.75)",
+  basico: "rgba(27,185,235,0.75)",
+  cienciasIngenieria: "rgba(9,30,207,0.75)",
+  electivo: "rgba(100,116,139,0.75)",
+  integrador: "rgba(17,124,74,0.75)",
+};
+
+// ── Curriculum data (unchanged) ────────────────────────────
 const curriculumData = [
   {
     level: "NIVEL I",
@@ -187,7 +201,7 @@ const curriculumData = [
       },
       {
         code: "CBAS M06A",
-        name: "Ecuaciones Dif y Diferencia",
+        name: "Ecuaciones Dif y Dif.",
         type: "basico",
         credits: 4,
         ht: 0,
@@ -338,7 +352,7 @@ const curriculumData = [
       },
       {
         code: "ECON M12A",
-        name: "Fórmul. y Evaluación de Proyecto",
+        name: "Fórmul. y Eval. de Proyectos",
         type: "integrador",
         credits: 3,
         ht: 3,
@@ -362,7 +376,7 @@ const curriculumData = [
       },
       {
         code: "ISCO C09A",
-        name: "Sistemas Modelos",
+        name: "Sistemas y Modelos",
         type: "cienciasIngenieria",
         credits: 3,
         ht: 1,
@@ -460,7 +474,7 @@ const curriculumData = [
       },
       {
         code: "ISCO",
-        name: "Tóp Esp de Ciencias Computació",
+        name: "Tóp Esp Ciencias Computación",
         type: "cienciasIngenieria",
         credits: 3,
         ht: 1,
@@ -516,249 +530,453 @@ const curriculumData = [
 ];
 
 const legend = [
-  { label: "Comp. Humanístico", color: "bg-yellow-400" },
-  { label: "Comp. Lengua Extranjera", color: "bg-green-500" },
-  { label: "Comp. Básico", color: "bg-blue-400" },
-  { label: "Comp. Ciencias de la Ingeniería", color: "bg-blue-700" },
-  { label: "Comp. Electivo", color: "bg-gray-400" },
-  { label: "Comp. Integrador", color: "bg-emerald-600" },
+  { label: "Comp. Humanístico", color: "humanistico" },
+  { label: "Comp. Lengua Extranjera", color: "lenguaExtranjera" },
+  { label: "Comp. Básico", color: "basico" },
+  { label: "Comp. Ciencias Ingeniería", color: "cienciasIngenieria" },
+  { label: "Comp. Electivo", color: "electivo" },
+  { label: "Comp. Integrador", color: "integrador" },
 ];
 
-// ── Stat card skeleton ────────────────────────────────────────────────────────
+// ── Stat skeleton ──────────────────────────────────────────
 function StatSkeleton() {
   return (
-    <div className="flex items-center gap-3 rounded-xl border border-[#1a1a2e]/10 bg-white/90 p-3 backdrop-blur-sm">
-      <div className="h-8 w-8 shrink-0 animate-pulse rounded-full bg-[#1a1a2e]/10" />
-      <div className="space-y-1">
-        <div className="h-2 w-12 animate-pulse rounded bg-[#1a1a2e]/10" />
-        <div className="h-6 w-16 animate-pulse rounded bg-[#1a1a2e]/10" />
+    <div className="stat-card flex items-center gap-3" style={{ opacity: 0.6 }}>
+      <div
+        className="stat-accent-strip"
+        style={{ background: "var(--surface-3)" }}
+      />
+      <div
+        className="hud-skeleton h-8 w-8 rounded-full flex-shrink-0"
+        style={{ height: "32px", width: "32px", borderRadius: "50%" }}
+      />
+      <div className="space-y-1.5 pl-1">
+        <div
+          className="hud-skeleton"
+          style={{ height: "10px", width: "48px" }}
+        />
+        <div
+          className="hud-skeleton"
+          style={{ height: "20px", width: "64px" }}
+        />
       </div>
     </div>
   );
 }
 
-// ── Page ──────────────────────────────────────────────────────────────────────
+// ── Page ───────────────────────────────────────────────────
 export default function MallaPage() {
   const { profile, loading } = useCurrentUser();
 
-  // Derive stat values — safe defaults while loading or when data is absent
   const pga = profile?.pga ?? null;
   const creditos = profile?.progress?.creditos_aprobados ?? null;
   const aprobadas = profile?.materiasAprobadas ?? null;
   const total = profile?.totalMaterias ?? null;
   const progreso = profile?.progress?.porcentaje_avance ?? null;
 
-  // PGA formatted to 2 decimal places, e.g. "4.20"
-  const pgaLabel =
-    pga !== null && pga > 0
-      ? pga.toFixed(2)
-      : pga === 0 && profile !== null
-        ? "—"
-        : "—";
-
-  // Progress formatted as "X%" or "X.XX%"
+  const pgaLabel = pga !== null && pga > 0 ? pga.toFixed(2) : "—";
   const progresoLabel = progreso !== null ? `${Math.round(progreso)}%` : "—";
 
   return (
-    <div className="flex flex-col gap-4">
-      {/* Page Header (unchanged) */}
-      <div>
-        <h1 className="text-2xl font-bold uppercase tracking-wide text-[#1a1a2e]">
-          Ver Malla
+    <div className="flex flex-col gap-5">
+      {/* Page heading */}
+      <div className="flex items-baseline gap-3">
+        <h1
+          style={{
+            fontFamily: "var(--font-display)",
+            fontSize: "1.5rem",
+            fontWeight: 900,
+            letterSpacing: "0.12em",
+            textTransform: "uppercase",
+            color: "var(--text-primary)",
+          }}
+        >
+          Ruta Académica
         </h1>
-        <p className="text-sm text-[#1a1a2e]/60">Malla Curricular</p>
+        <span
+          style={{
+            fontFamily: "var(--font-mono)",
+            fontSize: "10px",
+            letterSpacing: "0.12em",
+            color: "var(--text-muted)",
+          }}
+        >
+          // malla · curricular
+        </span>
       </div>
 
-      {/* Program Info (unchanged) */}
-      <div className="max-w-5xl rounded-xl border border-[#1a1a2e]/10 bg-white/90 p-4 backdrop-blur-sm">
-        <div className="mb-3">
-          <span className="text-xs font-medium uppercase text-[#1BB9EB]">
-            Programa
-          </span>
-          <p className="text-sm font-semibold text-[#1a1a2e]">
-            Ingeniería de Sistemas y Computación
-          </p>
+      {/* Program info panel */}
+      <div className="hud-panel" style={{ padding: "0", maxWidth: "860px" }}>
+        <div
+          className="flex items-center gap-2 px-4 py-3"
+          style={{ borderBottom: "1px solid var(--surface-3)" }}
+        >
+          <div
+            className="h-4 w-[2px]"
+            style={{ background: "var(--utb-cyan)" }}
+          />
+          <h2
+            style={{
+              fontFamily: "var(--font-display)",
+              fontSize: "0.7rem",
+              fontWeight: 700,
+              letterSpacing: "0.15em",
+              textTransform: "uppercase",
+              color: "var(--text-primary)",
+            }}
+          >
+            Información del Programa
+          </h2>
         </div>
-        <div className="mb-3">
-          <span className="text-xs font-medium uppercase text-[#1BB9EB]">
-            Facultad
-          </span>
-          <p className="text-sm font-semibold text-[#1a1a2e]">Ingeniería</p>
-        </div>
-        <div className="mb-4">
-          <hr />
-        </div>
-        <div className="grid grid-cols-2 gap-2 text-xs">
-          <div>
-            <span className="text-[10px] font-medium uppercase text-[#1a1a2e]/50">
-              Código
-            </span>
-            <p className="font-mono text-[#1a1a2e]">FR-S.GEN 03-004</p>
-          </div>
-          <div>
-            <span className="text-[10px] font-medium uppercase text-[#1a1a2e]/50">
-              Versión
-            </span>
-            <p className="font-mono text-[#1a1a2e]">01</p>
-          </div>
-          <div>
-            <span className="text-[10px] font-medium uppercase text-[#1a1a2e]/50">
-              Fecha
-            </span>
-            <p className="font-mono text-[#1a1a2e]">13-1-2022</p>
-          </div>
-          <div>
-            <span className="text-[10px] font-medium uppercase text-[#1a1a2e]/50">
-              Vigente Desde
-            </span>
-            <p className="font-mono text-[#1a1a2e]">201910</p>
-          </div>
-        </div>
-      </div>
-
-      {/* Curriculum Grid (unchanged) */}
-      <div className="overflow-x-auto rounded-xl border border-[#1a1a2e]/10 bg-white/90 p-4 backdrop-blur-sm">
-        <div className="flex min-w-[1400px] gap-2">
-          {curriculumData.map((level, levelIndex) => (
+        <div
+          className="grid grid-cols-2 gap-px sm:grid-cols-4"
+          style={{ background: "var(--surface-3)" }}
+        >
+          {[
+            { label: "Programa", value: "Ing. de Sistemas y Computación" },
+            { label: "Facultad", value: "Ingeniería" },
+            { label: "Código", value: "FR-S.GEN 03-004" },
+            { label: "Vigente desde", value: "201910" },
+          ].map((item) => (
             <div
-              key={levelIndex}
-              className="flex w-[140px] shrink-0 flex-col gap-2"
+              key={item.label}
+              className="px-4 py-3"
+              style={{ background: "var(--surface-1)" }}
             >
-              <div className="rounded-lg bg-[#1BB9EB] px-2 py-2 text-center">
-                <span className="text-xs font-bold text-white">
-                  {level.level}
-                </span>
-              </div>
-              <div className="flex flex-col gap-1.5">
-                {level.subjects.map((subject, subjectIndex) => (
-                  <div
-                    key={subjectIndex}
-                    className={`${categoryColors[subject.type]} aspect-square w-full rounded-lg p-1.5 shadow-sm transition-transform hover:scale-105`}
-                    title={`${subject.name}\n${subject.code}\nCréditos: ${subject.credits}`}
+              <p
+                className="hud-label"
+                style={{ color: "var(--utb-cyan)", marginBottom: "3px" }}
+              >
+                {item.label}
+              </p>
+              <p
+                style={{
+                  fontFamily: "var(--font-body)",
+                  fontSize: "0.78rem",
+                  fontWeight: 600,
+                  color: "var(--text-primary)",
+                }}
+              >
+                {item.value}
+              </p>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Curriculum grid */}
+      <div className="hud-panel" style={{ padding: "0", overflow: "hidden" }}>
+        <div
+          className="flex items-center gap-2 px-4 py-3"
+          style={{ borderBottom: "1px solid var(--surface-3)" }}
+        >
+          <div
+            className="h-4 w-[2px]"
+            style={{ background: "var(--utb-emerald)" }}
+          />
+          <h2
+            style={{
+              fontFamily: "var(--font-display)",
+              fontSize: "0.7rem",
+              fontWeight: 700,
+              letterSpacing: "0.15em",
+              textTransform: "uppercase",
+              color: "var(--text-primary)",
+            }}
+          >
+            Malla Curricular
+          </h2>
+        </div>
+        <div className="overflow-x-auto p-4">
+          <div className="flex gap-2" style={{ minWidth: "1400px" }}>
+            {curriculumData.map((level, li) => (
+              <div
+                key={li}
+                className="flex flex-col gap-2"
+                style={{ width: "138px", flexShrink: 0 }}
+              >
+                {/* Level header */}
+                <div
+                  style={{
+                    clipPath: "var(--clip-corner-sm)",
+                    background: "var(--utb-cyan)",
+                    padding: "6px",
+                    textAlign: "center",
+                  }}
+                >
+                  <span
+                    style={{
+                      fontFamily: "var(--font-mono)",
+                      fontSize: "9px",
+                      fontWeight: 700,
+                      letterSpacing: "0.12em",
+                      color: "var(--utb-black)",
+                      textTransform: "uppercase",
+                    }}
                   >
-                    <div className="flex h-full flex-col justify-between text-white">
-                      <div>
-                        <div className="flex items-center justify-between text-[7px] opacity-80">
-                          <span>
-                            {subject.type === "humanistico"
-                              ? "Marso"
-                              : subject.type === "basico"
-                                ? "Cbas"
-                                : subject.type === "lenguaExtranjera"
-                                  ? "Curso"
-                                  : subject.type === "cienciasIngenieria"
-                                    ? "Isco"
-                                    : "Mat"}
-                          </span>
-                          <span>Coo C HT HP</span>
+                    {level.level}
+                  </span>
+                </div>
+
+                {/* Subject tiles */}
+                <div className="flex flex-col gap-1.5">
+                  {level.subjects.map((s, si) => (
+                    <div
+                      key={si}
+                      title={`${s.name}\n${s.code}\nCréditos: ${s.credits}`}
+                      style={{
+                        width: "100%",
+                        aspectRatio: "1/1",
+                        background:
+                          categoryBg[s.type] ?? "rgba(100,116,139,0.75)",
+                        clipPath: "var(--clip-corner-sm)",
+                        padding: "6px",
+                        cursor: "default",
+                        transition:
+                          "transform 0.15s ease, box-shadow 0.15s ease",
+                        position: "relative",
+                        overflow: "hidden",
+                      }}
+                      onMouseEnter={(e) => {
+                        (e.currentTarget as HTMLElement).style.transform =
+                          "scale(1.04)";
+                        (e.currentTarget as HTMLElement).style.zIndex = "10";
+                      }}
+                      onMouseLeave={(e) => {
+                        (e.currentTarget as HTMLElement).style.transform =
+                          "scale(1)";
+                        (e.currentTarget as HTMLElement).style.zIndex = "1";
+                      }}
+                    >
+                      {/* Inner content */}
+                      <div
+                        style={{
+                          height: "100%",
+                          display: "flex",
+                          flexDirection: "column",
+                          justifyContent: "space-between",
+                          color: "white",
+                        }}
+                      >
+                        <div>
+                          <div
+                            style={{
+                              display: "flex",
+                              justifyContent: "space-between",
+                              alignItems: "center",
+                              fontSize: "6px",
+                              opacity: 0.75,
+                              letterSpacing: "0.05em",
+                              fontFamily: "var(--font-mono)",
+                            }}
+                          >
+                            <span>{s.code.split(" ")[0]}</span>
+                            <span>C·HT·HP</span>
+                          </div>
+                          <div
+                            style={{
+                              display: "flex",
+                              justifyContent: "space-between",
+                              fontSize: "7px",
+                              fontWeight: 700,
+                              fontFamily: "var(--font-mono)",
+                              marginTop: "2px",
+                            }}
+                          >
+                            <span
+                              style={{
+                                overflow: "hidden",
+                                textOverflow: "ellipsis",
+                                whiteSpace: "nowrap",
+                                maxWidth: "70%",
+                              }}
+                            >
+                              {s.code.split(" ")[1] ?? s.code}
+                            </span>
+                            <span>
+                              {s.credits}·{s.ht}·{s.hp}
+                            </span>
+                          </div>
                         </div>
-                        <div className="mt-0.5 flex items-center justify-between text-[7px] font-medium">
-                          <span className="truncate">
-                            {subject.code.split(" ")[1]}
-                          </span>
-                          <span>
-                            {subject.credits} {subject.ht} {subject.hp}
-                          </span>
-                        </div>
-                      </div>
-                      <div className="mt-1">
-                        <p className="line-clamp-3 text-[8px] font-semibold leading-tight">
-                          {subject.name.toUpperCase()}
+                        <p
+                          style={{
+                            fontSize: "7.5px",
+                            fontWeight: 600,
+                            lineHeight: 1.25,
+                            fontFamily: "var(--font-display)",
+                            letterSpacing: "0.02em",
+                            textTransform: "uppercase",
+                            display: "-webkit-box",
+                            WebkitLineClamp: 3,
+                            WebkitBoxOrient: "vertical",
+                            overflow: "hidden",
+                          }}
+                        >
+                          {s.name}
                         </p>
                       </div>
+                      {/* Corner accent */}
+                      <div
+                        style={{
+                          position: "absolute",
+                          bottom: "3px",
+                          right: "3px",
+                          width: "5px",
+                          height: "5px",
+                          borderBottom: "1px solid rgba(255,255,255,0.4)",
+                          borderRight: "1px solid rgba(255,255,255,0.4)",
+                        }}
+                      />
                     </div>
-                  </div>
-                ))}
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* Legend */}
+      <div className="hud-panel" style={{ padding: "0", maxWidth: "860px" }}>
+        <div
+          className="flex items-center gap-2 px-4 py-3"
+          style={{ borderBottom: "1px solid var(--surface-3)" }}
+        >
+          <span
+            style={{
+              fontFamily: "var(--font-mono)",
+              fontSize: "9px",
+              letterSpacing: "0.18em",
+              textTransform: "uppercase",
+              color: "var(--text-muted)",
+            }}
+          >
+            Leyenda de Componentes
+          </span>
+        </div>
+        <div className="grid grid-cols-2 gap-2 p-4 sm:grid-cols-3">
+          {legend.map((item) => (
+            <div key={item.label} className="flex items-center gap-2">
+              <div
+                style={{
+                  width: "14px",
+                  height: "14px",
+                  flexShrink: 0,
+                  clipPath: "var(--clip-corner-sm)",
+                  background: categoryBg[item.color],
+                }}
+              />
+              <span
+                style={{
+                  fontFamily: "var(--font-body)",
+                  fontSize: "0.72rem",
+                  color: "var(--text-secondary)",
+                }}
+              >
+                {item.label}
+              </span>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Stat cards */}
+      <div
+        className="grid grid-cols-2 gap-3 sm:grid-cols-4"
+        style={{ maxWidth: "860px" }}
+      >
+        {loading ? (
+          [1, 2, 3, 4].map((i) => <StatSkeleton key={i} />)
+        ) : (
+          <>
+            <div className="stat-card flex items-center gap-3">
+              <div
+                className="stat-accent-strip"
+                style={{ background: "var(--utb-cyan)" }}
+              />
+              <GraduationCap
+                className="h-7 w-7 flex-shrink-0"
+                style={{ color: "var(--utb-cyan)" }}
+              />
+              <div className="pl-1">
+                <p className="hud-label" style={{ color: "var(--utb-cyan)" }}>
+                  PGA
+                </p>
+                <p className="hud-value" style={{ fontSize: "1.5rem" }}>
+                  {pgaLabel}
+                </p>
               </div>
             </div>
-          ))}
-        </div>
-      </div>
 
-      {/* Legend (unchanged) */}
-      <div className="max-w-5xl rounded-xl border border-[#1a1a2e]/10 bg-white/90 p-4 backdrop-blur-sm">
-        <span className="mb-3 block text-xs font-medium uppercase text-[#1a1a2e]/50">
-          Leyenda de Componentes
-        </span>
-        <div className="grid grid-cols-2 gap-2">
-          {legend.map((item, index) => (
-            <div key={index} className="flex items-center gap-2">
-              <div className={`h-4 w-4 shrink-0 rounded ${item.color}`} />
-              <span className="text-xs text-[#1a1a2e]/70">{item.label}</span>
+            <div className="stat-card flex items-center gap-3">
+              <div
+                className="stat-accent-strip"
+                style={{ background: "var(--utb-savio)" }}
+              />
+              <Award
+                className="h-7 w-7 flex-shrink-0"
+                style={{ color: "var(--utb-savio)" }}
+              />
+              <div className="pl-1">
+                <p className="hud-label" style={{ color: "var(--utb-savio)" }}>
+                  Créditos
+                </p>
+                <p className="hud-value" style={{ fontSize: "1.5rem" }}>
+                  {creditos !== null ? creditos : "—"}
+                </p>
+              </div>
             </div>
-          ))}
-        </div>
-      </div>
 
-      {/* ── Stat cards — only these values are dynamic ────────────────────── */}
-      <div className="max-w-5xl grid grid-cols-2 gap-3">
-        {/* PGA */}
-        {loading ? (
-          <StatSkeleton />
-        ) : (
-          <div className="flex items-center gap-3 rounded-xl border border-[#1a1a2e]/10 bg-white/90 p-3 backdrop-blur-sm">
-            <GraduationCap className="h-8 w-8 shrink-0 text-[#1BB9EB]" />
-            <div>
-              <p className="text-[10px] font-medium uppercase text-[#1BB9EB]">
-                PGA
-              </p>
-              <p className="text-2xl font-bold text-[#1a1a2e]">{pgaLabel}</p>
+            <div className="stat-card flex items-center gap-3">
+              <div
+                className="stat-accent-strip"
+                style={{ background: "var(--utb-emerald)" }}
+              />
+              <BookOpen
+                className="h-7 w-7 flex-shrink-0"
+                style={{ color: "var(--utb-emerald)" }}
+              />
+              <div className="pl-1">
+                <p
+                  className="hud-label"
+                  style={{ color: "var(--utb-emerald)" }}
+                >
+                  Materias
+                </p>
+                <p className="hud-value" style={{ fontSize: "1.5rem" }}>
+                  {aprobadas !== null ? aprobadas : "—"}
+                  <span
+                    style={{
+                      fontSize: "0.9rem",
+                      color: "var(--text-muted)",
+                      fontWeight: 400,
+                    }}
+                  >
+                    /{total !== null ? total : "—"}
+                  </span>
+                </p>
+              </div>
             </div>
-          </div>
-        )}
 
-        {/* Créditos */}
-        {loading ? (
-          <StatSkeleton />
-        ) : (
-          <div className="flex items-center gap-3 rounded-xl border border-[#1a1a2e]/10 bg-white/90 p-3 backdrop-blur-sm">
-            <Award className="h-8 w-8 shrink-0 text-[#1a1a2e]/40" />
-            <div>
-              <p className="text-[10px] font-medium uppercase text-[#1a1a2e]/50">
-                Créditos
-              </p>
-              <p className="text-2xl font-bold text-[#1a1a2e]">
-                {creditos !== null ? creditos : "—"}
-              </p>
+            <div className="stat-card flex items-center gap-3">
+              <div
+                className="stat-accent-strip"
+                style={{ background: "var(--utb-aqua)" }}
+              />
+              <Percent
+                className="h-7 w-7 flex-shrink-0"
+                style={{ color: "var(--utb-aqua)" }}
+              />
+              <div className="pl-1">
+                <p className="hud-label" style={{ color: "var(--utb-aqua)" }}>
+                  Progreso
+                </p>
+                <p className="hud-value" style={{ fontSize: "1.5rem" }}>
+                  {progresoLabel}
+                </p>
+              </div>
             </div>
-          </div>
-        )}
-
-        {/* Materias */}
-        {loading ? (
-          <StatSkeleton />
-        ) : (
-          <div className="flex items-center gap-3 rounded-xl border border-[#1a1a2e]/10 bg-white/90 p-3 backdrop-blur-sm">
-            <BookOpen className="h-8 w-8 shrink-0 text-[#1a1a2e]/40" />
-            <div>
-              <p className="text-[10px] font-medium uppercase text-[#1a1a2e]/50">
-                Materias
-              </p>
-              <p className="text-2xl font-bold text-[#1a1a2e]">
-                {aprobadas !== null ? aprobadas : "—"}
-                <span className="text-sm text-[#1a1a2e]/40">
-                  /{total !== null ? total : "—"}
-                </span>
-              </p>
-            </div>
-          </div>
-        )}
-
-        {/* Progreso */}
-        {loading ? (
-          <StatSkeleton />
-        ) : (
-          <div className="flex items-center gap-3 rounded-xl border border-[#1a1a2e]/10 bg-white/90 p-3 backdrop-blur-sm">
-            <Percent className="h-8 w-8 shrink-0 text-[#1a1a2e]/40" />
-            <div>
-              <p className="text-[10px] font-medium uppercase text-[#1a1a2e]/50">
-                Progreso
-              </p>
-              <p className="text-2xl font-bold text-[#1a1a2e]">
-                {progresoLabel}
-              </p>
-            </div>
-          </div>
+          </>
         )}
       </div>
     </div>
