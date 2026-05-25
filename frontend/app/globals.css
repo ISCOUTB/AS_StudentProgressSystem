@@ -183,7 +183,7 @@
   }
 }
 
-/* ─── HUD / Marathon Geometric Components ──────────────── */
+/* ─── HUD /  Geometric Components ──────────────── */
 @layer components {
   /* ── Panel base: fondo con esquina cortada ────────────── */
   .hud-panel {
@@ -370,7 +370,7 @@
     line-height: 1;
   }
 
-  /* ── Botón principal Marathon-style ──────────────────── */
+  /* ── Botón principal -style ──────────────────── */
   .btn-hud {
     display: inline-flex;
     align-items: center;

@@ -1,7 +1,7 @@
 "use client";
 
 /**
- * /dashboard/perfil — Marathon × UTB Design System
+ * /dashboard/perfil —   UTB Design System
  * Rediseño visual completo. Lógica, hooks y estado sin cambios.
  */
 
@@ -524,7 +524,7 @@ function AcademicProgressSection({
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// ACHIEVEMENT CARD — Marathon geometric style
+// ACHIEVEMENT CARD —  geometric style
 // ─────────────────────────────────────────────────────────────────────────────
 
 function AchievementCard({

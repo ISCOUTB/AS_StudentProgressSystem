@@ -1,7 +1,7 @@
 "use client";
 
 /**
- * /dashboard/malla — Marathon × UTB "Ruta Académica"
+ * /dashboard/malla —   UTB "Ruta Académica"
  * Solo cambios visuales. Lógica, datos curriculares y hooks sin modificar.
  */
 

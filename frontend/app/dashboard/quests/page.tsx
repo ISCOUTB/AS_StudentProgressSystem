@@ -1,7 +1,7 @@
 "use client";
 
 /**
- * /dashboard/quests — Marathon × UTB Design System
+ * /dashboard/quests —  UTB Design System
  * Solo cambios visuales. Lógica, hooks y estado sin modificar.
  */
 

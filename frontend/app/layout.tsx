@@ -4,7 +4,7 @@ import { Analytics } from "@vercel/analytics/next";
 import "./globals.css";
 
 /* ──────────────────────────────────────────────────────────
-   Marathon × UTB Typography System
+     UTB Typography System
    ────────────────────────────────────────────────────────── */
 
 const exo = Exo_2({
