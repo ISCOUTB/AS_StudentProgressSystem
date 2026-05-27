@@ -28,7 +28,13 @@ export const metadata: Metadata = {
   title: "Student Progress System | UTB",
   description:
     "Sistema de Progreso Académico - Universidad Tecnológica de Bolívar",
+    icons: {
+    icon: "/images/sps-icon.jpeg",
+    shortcut: "/images/sps-icon.jpeg",
+    apple: "/images/sps-icon.jpeg",
+  },
 };
+
 
 export default function RootLayout({
   children,

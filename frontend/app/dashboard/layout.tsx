@@ -50,7 +50,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
     >
       {/* ─── Background fondo ──────────────────────────────── */}
       <div
-        className="fixed inset-0 bg-cover bg-center bg-no-repeat opacity-30"
+        className="fixed inset-0 bg-cover bg-center bg-no-repeat opacity-10"
         style={{ backgroundImage: "url('/images/fondo-dashboard.png')" }}
       />
 
@@ -182,20 +182,22 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
                 </Link>
               );
             })}
+
+            {/* UTB logo watermark */}
+            {!collapsed && (
+              <div className="p-3 opacity-10 pointer-events-none">
+                <Image
+                  src="/images/utb-logo.svg"
+                  alt="UTB"
+                  // width={80}
+                  // height={40}
+                  className="w-20"
+                />
+              </div>
+            )}
           </nav>
 
-          {/* UTB logo watermark */}
-          {!collapsed && (
-            <div className="p-3 opacity-20 pointer-events-none">
-              <Image
-                src="/images/utb-logo.svg"
-                alt="UTB"
-                width={80}
-                height={40}
-                className="w-16"
-              />
-            </div>
-          )}
+          
 
           {/* Logout */}
           <div
