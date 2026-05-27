@@ -7,13 +7,13 @@ export default function LandingPage() {
       {/* Background Image - contains all the text/graphics as per design */}
       <div 
         className="absolute inset-0 bg-cover bg-center bg-no-repeat"
-        style={{ backgroundImage: "url('/images/fondo-landing.jpg')" }}
+        style={{ backgroundImage: "url('/images/background-page.jpeg')" }}
       />
       
       {/* UTB Logo - Top Left */}
       <div className="absolute top-8 left-8 z-10">
         <Image
-          src="/images/background-page.jpeg"
+          src="/images/utb-logo-original.svg"
           alt="UTB - Universidad Tecnológica de Bolívar"
           width={120}
           height={60}
