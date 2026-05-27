@@ -13,7 +13,7 @@ export default function LandingPage() {
       {/* UTB Logo - Top Left */}
       <div className="absolute top-8 left-8 z-10">
         <Image
-          src="/images/utb-logo-original.svg"
+          src="/images/background-page.jpeg"
           alt="UTB - Universidad Tecnológica de Bolívar"
           width={120}
           height={60}

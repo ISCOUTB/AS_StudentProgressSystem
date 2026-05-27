@@ -64,7 +64,7 @@ export default function LoginPage() {
         className="absolute inset-0 bg-cover bg-center bg-no-repeat"
         style={{
           backgroundImage: "url('/images/fondo-login.png')",
-          opacity: 0.18,
+          opacity: 0.6,
         }}
       />
 
