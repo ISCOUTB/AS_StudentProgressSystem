@@ -199,7 +199,7 @@ function ProfileHeader({
 
   return (
     <div
-      className="hud-panel-lg relative overflow-hidden hud-grid-bg"
+      className="hud-panel-lg relative overflow-hidden"
       style={{ padding: "1.5rem", marginBottom: "0" }}
     >
       {/* Corner brackets */}
