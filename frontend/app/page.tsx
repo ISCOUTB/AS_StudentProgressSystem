@@ -7,7 +7,7 @@ export default function LandingPage() {
       {/* Background Image - contains all the text/graphics as per design */}
       <div 
         className="absolute inset-0 bg-cover bg-center bg-no-repeat"
-        style={{ backgroundImage: "url('/images/background-page.jpeg')" }}
+        style={{ backgroundImage: "url('/images/bg-main.jpeg')" }}
       />
       
       {/* UTB Logo - Top Left */}
