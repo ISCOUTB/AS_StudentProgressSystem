@@ -50,7 +50,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
     >
       {/* ─── Background fondo ──────────────────────────────── */}
       <div
-        className="fixed inset-0 bg-cover bg-center bg-no-repeat opacity-10"
+        className="fixed inset-0 bg-cover bg-center bg-no-repeat"
         style={{ backgroundImage: "url('/images/fondo-dashboard.png')" }}
       />
 
@@ -185,13 +185,13 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
 
             {/* UTB logo watermark */}
             {!collapsed && (
-              <div className="p-3 opacity-10 pointer-events-none">
+              <div className="p-3 pointer-events-none">
                 <Image
                   src="/images/utb-logo.svg"
                   alt="UTB"
                   // width={80}
                   // height={40}
-                  className="w-20"
+                  //className="w-20"
                 />
               </div>
             )}
